@@ -1,0 +1,1 @@
+console.log("environment variables", process.env.COSMOSDB_ENDPOINT, process.env.COSMOSDB_KEY, process.env.COSMOSDB_DATABASE, process.env.COSMOSDB_CONTAINER);

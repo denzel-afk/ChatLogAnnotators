@@ -1,35 +1,37 @@
 "use client";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import ConversationSidebar from "@/components/conversation-sidebar";
+
+interface Chatlog {
+  _id: string;
+  Person: string;
+  firstInteraction: string;
+  lastInteraction: string;
+  messages: { role: string; content: string }[];
+}
 
 export default function Home() {
-  return (
-    <div className="h-scren w-full bg-cover bg-center">
-      {/* Background overlay */}
-      <div className="bg-black opacity-50"></div>
+  const [conversations, setConversations] = useState<Chatlog[]>([]);
 
-      {/* Content container */}
-      <div className="flex justify-center h-full">
-        <motion.div
-          animate={{
-            scale: [1, 1.01, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            repeatType: "loop",
-            ease: "easeInOut", 
-          }}
-          className = "justify-center pl-4"
-        >
-          {/* Main Heading */}
-          <h1 className="text-4xl sm:text-4xl font-extrabold text-white drop-shadow-lg">
-            Welcome to Chatlog Annotators 👋
-          </h1>
-          {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-gray-300">
-            Annotate your chat logs with ease and efficiency.
-          </p>
-        </motion.div>
+  useEffect(() => {
+    fetch("/api/conversations")
+      .then((res) => res.json())
+      .then((data) => {
+        setConversations(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching conversations:", error);
+      });
+  }, []);
+
+  return (
+    <div className="h-screen flex-row flex">
+      {/* Sidebar */}
+      <div className="resize-x">
+        <ConversationSidebar
+          conversations={conversations}
+          onConversationSelect={(id) => console.log(`Selected: ${id}`)}
+        />
       </div>
     </div>
   );

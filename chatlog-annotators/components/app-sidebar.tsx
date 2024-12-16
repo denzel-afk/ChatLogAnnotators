@@ -20,9 +20,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import CueCard from "@/components/cue-card"
 
 // This is sample data.
 const data = {
@@ -33,12 +33,15 @@ const data = {
 
   navMain: [
     { title: "Home", url: "/home", icon: SquareTerminal, isActive: true },
-    { title: "Filter", url: "/filter", icon: BookOpen },
     { title: "Teams", url: "/teams", icon: Settings2 },
+    { title: "Analytics", url: "/analytics", icon: PieChart },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const handleCueCardClick = () => {
+    console.log("CueCard clicked");
+  };
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarContent>
