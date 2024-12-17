@@ -1,5 +1,7 @@
 "use client";
+import { ReactNode } from "react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ConversationSidebar from "@/components/conversation-sidebar";
 
 interface Chatlog {
@@ -10,8 +12,9 @@ interface Chatlog {
   messages: { role: string; content: string }[];
 }
 
-export default function Home() {
+export default function HomeLayout({children}: {children: ReactNode}) {
   const [conversations, setConversations] = useState<Chatlog[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/conversations")
@@ -25,14 +28,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-screen flex-row flex">
+    <div className="h-screen flex-row flex overflow-auto bg-gray-900">
       {/* Sidebar */}
-      <div className="resize-x">
+      <div className="overflow-auto">
         <ConversationSidebar
           conversations={conversations}
-          onConversationSelect={(id) => console.log(`Selected: ${id}`)}
+          onConversationSelect={(id) => router.push(`/admin/home/${id}`)}
         />
       </div>
+      <div className = "flex-1 overflow-auto">{children}</div>
     </div>
   );
 }

@@ -16,7 +16,7 @@ interface ConvSidebarProps {
 const ConversationSidebar: React.FC<ConvSidebarProps> = ({ conversations, onConversationSelect }) => {
   return (
     <div
-      className="w-80 h-screen overflow-y-scroll bg-gray-800 text-white resize-x overflow-auto p-4"
+      className="w-80 h-screen overflow-y-scroll bg-black text-white resize-x overflow-auto p-4"
     >
       <h2 className="text-lg font-semibold mb-4">Conversations</h2>
       {conversations.map((conv) => (
