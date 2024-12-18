@@ -35,7 +35,6 @@ export function NavUser({
 }: {
   user: {
     name: string
-    email: string
   }
 }) {
   const { isMobile } = useSidebar()
@@ -55,7 +54,6 @@ export function NavUser({
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -72,9 +70,8 @@ export function NavUser({
                   <AvatarImage alt={user.name} />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-xl leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -86,7 +83,11 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={()=>{
+              document.cookie = "userRole=; path=/";
+              document.cookie = "username=; path=/";
+              window.location.href = "/login";
+            }}>
               <LogOut />
               Log out
             </DropdownMenuItem>
