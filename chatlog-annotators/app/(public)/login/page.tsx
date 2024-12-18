@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -15,11 +16,13 @@ export default function LoginPage() {
       return;
     }
 
+    setLoading(true);
+
     try {
       const res = await fetch("/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username}),
+        body: JSON.stringify({ username }),
       });
 
       if (!res.ok) {
@@ -28,6 +31,7 @@ export default function LoginPage() {
         } else {
           setError("An error occurred while logging in.");
         }
+        setLoading(false); // Reset loading state
         return;
       }
 
@@ -46,6 +50,8 @@ export default function LoginPage() {
     } catch (err) {
       console.error("Login failed:", err);
       setError("An error occurred. Please try again later.");
+    } finally {
+      setLoading(false); // Reset loading state
     }
   };
 
@@ -85,10 +91,23 @@ export default function LoginPage() {
         />
         <button
           onClick={handleLogin}
-          className="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-400 focus:outline-none hover:ease-in-out transition"  
+          className={`mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-400 focus:outline-none transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={loading} // Disable button while loading
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
+        {loading && (
+          <div className="flex justify-center mt-4">
+            <motion.div
+              className="h-5 w-5 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            ></motion.div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
