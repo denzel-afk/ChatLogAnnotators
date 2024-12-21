@@ -1,13 +1,34 @@
 # ChatLogAnnotators
 
-ChatLogAnnotators is a web application that allows users to upload a chatlog.json file and annotate it manually or via auto-generated annotations powered by a GPT model. It uses MongoDB as the NoSQL database, Django for the backend, and React for the frontend.
+ChatLogAnnotators is a web application that allows users to upload a chatlog.json file and annotate it manually or via auto-generated annotations powered by a GPT model. It uses MongoDB as the NoSQL database, Next.js as its Frontend and Node.js as its Backend.
 
-## <b> Prerequisites </b>
+## Prerequisites
 To develop or run this project on your local machine, ensure you have the following software installed:
 
-Before running this project, ensure the following are installed on your machine:
+1. Git (Install Git)
+2. Node.js and npm (Install Node.js)
 
-1. Docker Desktop (Install Docker)
-2. Git (Install Git)
+## Running the Project
 
+### Next.js
+
+To run the frontend, follow these steps:
+1. Ensure Node.js and npm are installed on your machine. You can download and install them by searching Node.js in your browser
+
+2. Navigate to the directory:
+    ```sh
+    cd chatlog-annotators
+    ```
+
+3. Install the dependencies:
+    ```
+    npm install
+    ```
+
+4. Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+This will start the frontend development server on `http://localhost:3000`.
 
