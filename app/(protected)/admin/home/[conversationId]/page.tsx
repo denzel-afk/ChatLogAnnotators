@@ -47,7 +47,7 @@ export default function ConversationPage({ params }: { params: Promise<{ convers
   }
 
   if (!conversation) {
-    return <p className="p-4">Loading conversation...</p>;
+    return <p className="p-4 w-width">Loading conversation...</p>;
   }
 
   return (

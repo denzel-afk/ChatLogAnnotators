@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { SquareTerminal, Settings2, PieChart, LucideIcon } from "lucide-react";
+import { SquareTerminal, Settings2, PieChart, LucideIcon} from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -38,6 +38,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           { title: "Home", url: "/admin/home", icon: SquareTerminal, isActive: true },
           { title: "Teams", url: "/admin/teams", icon: Settings2 },
           { title: "Analytics", url: "/admin/analytics", icon: PieChart },
+          { title: "Admin", url: "/admin/admin", icon: Settings2 },
         ]);
       } else if (role === "annotator") {
         setNavMain([
