@@ -19,6 +19,10 @@ export default function ConversationPage({
     answers?: string[];
   } | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [deleteModal, setDeleteModal] = useState<boolean>(false);
+  const [targetAnnotation, setTargetAnnotation] = useState<Annotation | null>(
+    null
+  );
 
   useEffect(() => {
     params
@@ -76,6 +80,8 @@ export default function ConversationPage({
   const handleDeleteAnnotation = (annotationId: string) => {
     if (!conversationId || !annotationId) return;
 
+    console.log("Deleting annotation...");
+
     fetch(`/api/conversations/${conversationId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -86,6 +92,7 @@ export default function ConversationPage({
         return res.json();
       })
       .then(() => {
+        console.log("Annotation deleted successfully");
         setConversation((prev) =>
           prev
             ? {
@@ -140,40 +147,61 @@ export default function ConversationPage({
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-bold">Admin: Manage Annotations</h1>
-      <table className="w-full mt-4 border">
+      <h1 className="text-xl font-bold pb-4">Admin: Manage Annotations</h1>
+      <h2 className="text-l font-bold">Conversation Annotation</h2>
+      <table className="w-full mt-4 border outline-white outline">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Type</th>
-            <th>Actions</th>
+            <th className="border border-white" style={{ width: "20%" }}>
+              Title
+            </th>
+            <th className="border border-white" style={{ width: "10%" }}>
+              Type
+            </th>
+            <th className="border border-white" style={{ width: "50%" }}>
+              Choices
+            </th>
+            <th style={{ width: "20%" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {conversation.annotations?.map((annotation) => (
             <tr key={annotation._id}>
-              <td>{annotation.title}</td>
-              <td>{annotation.type}</td>
-              <td>
+              <td className="text-base break-words border border-white p-2">
+                {annotation.title}
+              </td>
+              <td className="text-base break-words border border-white p-2">
+                {annotation.type}
+              </td>
+              <td className="border-white border">
+                {annotation.options?.map((option, index) => (
+                  <p key={index} className="text-sm break-words pl-2 pr-1">
+                    - {option}
+                  </p>
+                ))}
+              </td>
+              <td className="py-2 px-4 border-b border-gray-300 text-center border-white border">
                 <button
-                  className="text-blue-500"
+                  className="mb-2 px-3 py-1 text-sm text-white bg-blue-500 rounded-md shadow hover:bg-blue-400 focus:ring-2 focus:ring-blue-300 transition ease-in-out"
                   onClick={() => {
                     setNewAnnotation({
                       _id: annotation._id || "",
                       title: annotation.title || "",
                       type: annotation.type || "multiple choice",
                       options: annotation.options || [],
-                      answers: annotation.answers || [], // Normalize null to an empty array
+                      answers: annotation.answers || [],
                     });
                     setModalOpen(true);
                   }}
                 >
                   Edit
                 </button>
-
                 <button
-                  className="text-red-500 ml-2"
-                  onClick={() => handleDeleteAnnotation(annotation._id)}
+                  className="ml-2 px-3 py-1 text-sm text-white bg-red-500 rounded-md shadow hover:bg-red-400 focus:ring-2 focus:ring-red-300 transition ease-in-out"
+                  onClick={() => {
+                    setDeleteModal(true);
+                    setTargetAnnotation(annotation);
+                  }}
                 >
                   Delete
                 </button>
@@ -189,14 +217,67 @@ export default function ConversationPage({
         Add Annotation
       </button>
 
+      {deleteModal && (
+        <div
+          className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
+            deleteModal ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div
+            className={`bg-blue-800 rounded-lg shadow-lg p-6 w-80 transform transition-transform duration-300 ${
+              deleteModal ? "scale-100" : "scale-95"
+            }`}
+          >
+            <h2 className="text-white text-lg font-bold mb-4">
+              Delete Annotation
+            </h2>
+            <p className="text-gray-300 text-sm mb-6">
+              Are you sure you want to delete this annotation?
+              <strong className="block text-white mt-2">
+                {targetAnnotation?.title}
+              </strong>
+            </p>
+            <div className="flex justify-between">
+              <button
+                className="px-4 py-2 bg-red-500 text-white rounded-md shadow hover:bg-red-400 focus:ring-2 focus:ring-red-300 transition ease-in-out"
+                onClick={() => {
+                  if (targetAnnotation?._id) {
+                    handleDeleteAnnotation(targetAnnotation._id);
+                  }
+                  setDeleteModal(false);
+                }}
+              >
+                Delete
+              </button>
+              <button
+                className="px-4 py-2 bg-gray-500 text-white rounded-md shadow hover:bg-gray-400 focus:ring-2 focus:ring-gray-300 transition ease-in-out"
+                onClick={() => setDeleteModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalOpen && (
-        <div className="modal">
-          <div className="modal-content p-4 mt-4 bg-blue-800 rounded shadow-md w-full outline outline-1 outline-white">
-            <h2 className="text-xl font-bold mb-4">Add Annotation</h2>
+        <div
+          className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
+            modalOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div
+            className={`bg-blue-800 rounded-lg shadow-lg p-6 w-96 transform transition-transform duration-300 ${
+              modalOpen ? "scale-100" : "scale-95"
+            }`}
+          >
+            <h2 className="text-white text-lg font-bold mb-4">
+              {newAnnotation?._id ? "Edit Annotation" : "Add Annotation"}
+            </h2>
             <input
               type="text"
               placeholder="Title"
-              className="border p-2 w-full mb-4"
+              className="border p-2 w-full mb-4 rounded"
               value={newAnnotation?.title || ""}
               onChange={(e) =>
                 setNewAnnotation((prev) => ({
@@ -208,7 +289,7 @@ export default function ConversationPage({
               }
             />
             <select
-              className="border p-2 w-full mb-4"
+              className="border p-2 w-full mb-4 rounded"
               value={newAnnotation?.type || "multiple choice"}
               onChange={(e) =>
                 setNewAnnotation((prev) => ({
@@ -228,13 +309,13 @@ export default function ConversationPage({
             {(newAnnotation?.type === "multiple choice" ||
               newAnnotation?.type === "multiple answers") && (
               <div className="mb-4">
-                <h3 className="font-bold mb-2">Options</h3>
+                <h3 className="font-bold mb-2 text-white">Options</h3>
                 {newAnnotation.options?.map((option, index) => (
                   <div key={index} className="flex items-center mb-2">
                     <input
                       type="text"
                       value={option}
-                      className="border p-2 flex-grow"
+                      className="border p-2 flex-grow rounded"
                       placeholder={`Option ${index + 1}`}
                       onChange={(e) =>
                         setNewAnnotation((prev) =>
@@ -254,7 +335,7 @@ export default function ConversationPage({
                       }
                     />
                     <button
-                      className="ml-2 px-2 py-1 bg-red-500 text-white rounded"
+                      className="ml-2 px-2 py-1 bg-red-500 text-white rounded shadow hover:bg-red-400 focus:ring-2 focus:ring-red-300 transition ease-in-out"
                       onClick={() =>
                         setNewAnnotation((prev) =>
                           prev
@@ -277,7 +358,7 @@ export default function ConversationPage({
                   </div>
                 ))}
                 <button
-                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded "
+                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-400 focus:ring-2 focus:ring-blue-300 transition ease-in-out"
                   onClick={() =>
                     setNewAnnotation((prev) =>
                       prev
@@ -296,17 +377,15 @@ export default function ConversationPage({
 
             <div className="flex justify-end">
               <button
-                className="px-4 py-2 mr-2 bg-green-500 text-white rounded ml-2 outline outline-2 outline-white hover:bg-green-400 hover:text-slate-600 transition ease-in ease-out"
+                className="px-4 py-2 mr-2 bg-green-500 text-white rounded shadow hover:bg-green-400 focus:ring-2 focus:ring-green-300 transition ease-in-out"
                 onClick={() => {
                   if (newAnnotation?._id) {
-                    // If _id exists, it's an edit
                     handleEditAnnotation(newAnnotation._id, {
                       title: newAnnotation.title,
                       type: newAnnotation.type,
                       options: newAnnotation.options,
                     });
                   } else {
-                    // Otherwise, it's a new annotation
                     handleAddAnnotation();
                   }
                   setModalOpen(false);
@@ -316,7 +395,7 @@ export default function ConversationPage({
                 Save
               </button>
               <button
-                className="px-4 py-2 bg-gray-500 text-white rounded outline outline-2 outline-white hover:bg-gray-400 hover:text-slate-600 transition ease-in ease-out"
+                className="px-4 py-2 bg-gray-500 text-white rounded shadow hover:bg-gray-400 focus:ring-2 focus:ring-gray-300 transition ease-in-out"
                 onClick={() => setModalOpen(false)}
               >
                 Cancel
