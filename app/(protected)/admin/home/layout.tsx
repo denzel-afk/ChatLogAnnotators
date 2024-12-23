@@ -28,12 +28,12 @@ export default function HomeLayout({children}: {children: ReactNode}) {
   }, []);
 
   return (
-    <div className="h-screen flex-row flex overflow-auto bg-gray-900">
+    <div className="h-screen flex-row flex overflow-auto bg-black">
       {/* Sidebar */}
       <div className="overflow-auto">
         <ConversationSidebar
           conversations={conversations}
-          onConversationSelect={(id) => router.push(`/annotator/home/${id}`)}
+          onConversationSelect={(id) => router.push(`/admin/home/${id}`)}
         />
       </div>
       <div className = "flex-1 overflow-auto">{children}</div>

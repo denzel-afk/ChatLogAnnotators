@@ -25,10 +25,11 @@ export default function RootLayout({
   return (
     <html lang = "en" suppressHydrationWarning>
       <body
+        className = "bg-black text-white"
       style={{ fontFamily: `${roboto.variable} monospace` }}>
         <ThemeProvider  
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange>
           <SidebarProvider>
