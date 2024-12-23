@@ -142,7 +142,7 @@ export default function ConversationPage({
   }
 
   if (!conversation) {
-    return <p className="p-4">Loading conversation...</p>;
+    return <p className="bg-black p-4">Loading conversation...</p>;
   }
 
   return (

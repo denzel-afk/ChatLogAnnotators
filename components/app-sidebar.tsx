@@ -43,7 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       } else if (role === "annotator") {
         setNavMain([
           { title: "Home", url: "/annotator/home", icon: SquareTerminal, isActive: true },
-          { title: "Teams", url: "/annotator/teams", icon: Settings2 },
+          { title: "Analytics", url: "/annotator/analytics", icon: PieChart },
         ]);
       }
     }

@@ -28,7 +28,7 @@ export default function HomeLayout({children}: {children: ReactNode}) {
   }, []);
 
   return (
-    <div className="h-screen flex-row flex overflow-auto bg-gray-900">
+    <div className="h-screen flex-row flex overflow-auto bg-black">
       {/* Sidebar */}
       <div className="overflow-auto">
         <ConversationSidebar

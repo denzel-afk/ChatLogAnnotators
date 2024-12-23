@@ -91,14 +91,14 @@ export default function ConversationPage({
   }
 
   if (!conversation) {
-    return <p className="p-4 w-width">Loading conversation...</p>;
+    return <p className="bg-black p-4 w-width">Loading conversation...</p>;
   }
 
   return (
     <div className="p-4">
       <div>
-        <h1 className="text-2xl font-bold">Home: Let's Annotate</h1>
-        <table className="w-full mt-2 border border-white shadow-sm mb-3">
+        <h1 className="text-2xl font-bold text-white">Home: Let's Annotate</h1>
+        <table className="w-full mt-2 border border-white shadow-sm mb-3 text-white">
           <thead>
             <tr>
               <th
