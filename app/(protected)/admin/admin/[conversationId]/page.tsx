@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Conversation, Message, Annotation } from "@/types/conversations";
+import { Conversation, Annotation } from "@/types/conversations";
 
 export default function ConversationPage({
   params,
