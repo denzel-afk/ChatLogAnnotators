@@ -19,9 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang = "en" suppressHydrationWarning>
-      <body className = "bg-black text-white"
-      style={{ fontFamily: `${roboto.variable} monospace` }}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className="bg-black text-white"
+        style={{ fontFamily: `${roboto.variable} monospace` }}
+      >
         {children}
       </body>
     </html>
