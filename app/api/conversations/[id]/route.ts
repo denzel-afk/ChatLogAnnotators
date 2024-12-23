@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";
 
-export async function GET(req: Request, context: any) {
+export async function GET(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
   try {
     const params = await context.params;
     const { id } = params;
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
             type: annotation.type,
             options: annotation.options || [],
             answers: annotation.answers || null,
-          } as any,
+          } as any,           /* eslint-disable-line @typescript-eslint/no-explicit-any */
         },
       }
     );
@@ -126,7 +126,7 @@ export async function DELETE(req: Request) {
 
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },
-      { $pull: { annotations: { _id: new ObjectId(annotationId) } } } as any
+      { $pull: { annotations: { _id: new ObjectId(annotationId) } } } as any           /* eslint-disable-line @typescript-eslint/no-explicit-any */
     );
 
     if (result.modifiedCount === 0) {

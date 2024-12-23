@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Annotation, Message, Conversation } from "@/types/conversations";
+import { Annotation, Conversation } from "@/types/conversations";
 
 export default function ConversationPage({
   params,
@@ -97,7 +97,7 @@ export default function ConversationPage({
   return (
     <div className="p-4">
       <div>
-        <h1 className="text-2xl font-bold">Home: Let's Annotate</h1>
+        <h1 className="text-2xl font-bold">Home: Annotate The Message</h1>
         <table className="w-full mt-2 border border-white shadow-sm mb-3">
           <thead>
             <tr>
@@ -157,7 +157,7 @@ export default function ConversationPage({
               }`}
             >
               <h2 className="text-white text-lg text-2xl font-bold mb-4">
-                "{editingAnnotation.title}"
+                {editingAnnotation.title}
               </h2>
 
               {/* Textbox for single-line input */}
