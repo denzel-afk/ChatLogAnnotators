@@ -41,7 +41,6 @@ export default function TeamsPage() {
         return;
       }
 
-      // Refresh users list
       const newUser = await res.json();
       setUsers((prev) => [...prev, newUser]);
       setUsername("");
