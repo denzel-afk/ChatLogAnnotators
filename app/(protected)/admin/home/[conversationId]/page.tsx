@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Annotation, Conversation } from "@/types/conversations";
+import { Conversation } from "@/types/conversations";
 
 export default function ConversationPage({
   params,
@@ -148,7 +148,7 @@ export default function ConversationPage({
                             type="radio"
                             name={annotation._id}
                             checked={annotation.answers?.[0] === option}
-                            onChange={(e) =>
+                            onChange={() =>
                               setConversation((prev) =>
                                 prev
                                   ? {
@@ -162,7 +162,7 @@ export default function ConversationPage({
                                   : null
                               )
                             }
-                            onBlur={(e) =>
+                            onBlur={() =>
                               handleSaveAnswer(annotation._id, [option])
                             }
                           />
