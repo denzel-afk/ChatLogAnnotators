@@ -174,11 +174,25 @@ export default function ConversationPage({
                 {annotation.type}
               </td>
               <td className="border-white border">
-                {annotation.options?.map((option, index) => (
-                  <p key={index} className="text-sm break-words pl-2 pr-1">
-                    - {option}
-                  </p>
-                ))}
+                {annotation.type !== "scaler" ? (
+                  annotation.options?.map((option, index) => (
+                    <p key={index} className="text-sm break-words pl-2 pr-1">
+                      - {option}
+                    </p>
+                  ))
+                ) : (
+                  <div>
+                    <p className="text-sm break-words pl-2 pr-1">
+                      Min Value: {annotation.options?.[0]}
+                    </p>
+                    <p className="text-sm break-words pl-2 pr-1">
+                      Max Value: {annotation.options?.[1]}
+                    </p>
+                    <p className="text-sm break-words pl-2 pr-1">
+                      Step Value: {annotation.options?.[2]}
+                    </p>
+                  </div>
+                )}
               </td>
               <td className="py-2 px-4 border-b border-gray-300 text-center border-white border">
                 <button
@@ -304,6 +318,7 @@ export default function ConversationPage({
               <option value="multiple choice">Multiple Choice</option>
               <option value="multiple answers">Multiple Answers</option>
               <option value="textbox">Textbox</option>
+              <option value="scaler">Scaler</option>
             </select>
 
             {(newAnnotation?.type === "multiple choice" ||
@@ -372,6 +387,73 @@ export default function ConversationPage({
                 >
                   Add Option
                 </button>
+              </div>
+            )}
+            {newAnnotation?.type === "scaler" && (
+              <div className="mb-4">
+                <h3 className="font-bold mb-2 text-white">Scaler Range</h3>
+                <div className="flex space-x-4 mb-4">
+                  <input
+                    type="number"
+                    className="border p-2 rounded w-1/2"
+                    placeholder="Min Value"
+                    value={newAnnotation.options?.[0] || ""}
+                    onChange={(e) =>
+                      setNewAnnotation((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              options: [
+                                e.target.value,
+                                prev.options?.[1] || "10",
+                                prev.options?.[2] || "1",
+                              ],
+                            }
+                          : null
+                      )
+                    }
+                  />
+                  <input
+                    type="number"
+                    className="border p-2 rounded w-1/2"
+                    placeholder="Max Value"
+                    value={newAnnotation.options?.[1] || ""}
+                    onChange={(e) =>
+                      setNewAnnotation((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              options: [
+                                prev.options?.[0] || "1",
+                                e.target.value,
+                                prev.options?.[2] || "1",
+                              ],
+                            }
+                          : null
+                      )
+                    }
+                  />
+                </div>
+                <input
+                  type="number"
+                  className="border p-2 rounded w-1/2"
+                  placeholder="Step Value"
+                  value={newAnnotation.options?.[2] || ""}
+                  onChange={(e) =>
+                    setNewAnnotation((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            options: [
+                              prev.options?.[0] || "1",
+                              prev.options?.[1] || "10",
+                              e.target.value,
+                            ],
+                          }
+                        : null
+                    )
+                  }
+                />
               </div>
             )}
 

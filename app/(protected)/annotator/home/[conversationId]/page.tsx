@@ -11,11 +11,6 @@ export default function ConversationPage({
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [editingAnnotation, setEditingAnnotation] = useState<Annotation | null>(
-    null
-  );
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [userAnswer, setUserAnswer] = useState<string[] | null>(null);
 
   useEffect(() => {
     params
@@ -41,24 +36,18 @@ export default function ConversationPage({
       });
   }, [params]);
 
-  const handleEditAnswer = (annotation: Annotation) => {
-    setEditingAnnotation(annotation);
-    setModalOpen(true);
-    setUserAnswer(annotation.answers || []);
-  };
-
-  const handleSaveAnswer = () => {
-    if (!editingAnnotation?._id || !conversationId) return;
-    fetch("/api/conversations/${conversationId}", {
+  const handleSaveAnswer = (annotationId: string, updatedAnswer: string[]) => {
+    if (!conversationId) return;
+    fetch(`/api/conversations/${conversationId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         id: conversationId,
-        annotationId: editingAnnotation._id,
+        annotationId,
         updatedFields: {
-          answers: userAnswer,
+          answers: updatedAnswer,
         },
       }),
     })
@@ -72,16 +61,13 @@ export default function ConversationPage({
             ? {
                 ...prev,
                 annotations: prev.annotations?.map((annotation) =>
-                  annotation._id === editingAnnotation._id
-                    ? { ...annotation, answers: userAnswer }
+                  annotation._id === annotationId
+                    ? { ...annotation, answers: updatedAnswer }
                     : annotation
                 ),
               }
             : null
         );
-        setModalOpen(false);
-        setEditingAnnotation(null);
-        setUserAnswer([]);
       })
       .catch((err) => console.error("Error saving answer:", err));
   };
@@ -91,14 +77,16 @@ export default function ConversationPage({
   }
 
   if (!conversation) {
-    return <p className="p-4 w-width">Loading conversation...</p>;
+    return <p className="bg-black p-4 w-width">Loading conversation...</p>;
   }
 
   return (
     <div className="p-4">
       <div>
-        <h1 className="text-2xl font-bold">Home: Annotate The Message</h1>
-        <table className="w-full mt-2 border border-white shadow-sm mb-3">
+        <h1 className="text-2xl font-bold text-white">
+          Home: Annotate The Message
+        </h1>
+        <table className="w-full mt-2 border border-white shadow-sm mb-3 text-white">
           <thead>
             <tr>
               <th
@@ -113,12 +101,6 @@ export default function ConversationPage({
               >
                 Answer
               </th>
-              <th
-                className="border-white border py-2 px-4 text=center"
-                style={{ width: "10%" }}
-              >
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -128,108 +110,150 @@ export default function ConversationPage({
                   {annotation.title}
                 </td>
                 <td className="py-2 px-4 border-white border">
-                  {Array.isArray(annotation.answers)
-                    ? annotation.answers.join(", ") // For multiple answers
-                    : annotation.answers || "No answer provided"}{" "}
-                  {/* For text or no answer */}
-                </td>
-                <td className="py-2 px-4 border-b border-gray-300 text-center">
-                  <button
-                    className="px-3 py-1 text-sm text-white bg-blue-500 rounded-md shadow hover:bg-blue-400 focus:ring-2 focus:ring-blue-300 transition ease-in-out"
-                    onClick={() => handleEditAnswer(annotation)}
-                  >
-                    Edit
-                  </button>
+                  {annotation.type === "textbox" && (
+                    <textarea
+                      className="w-full p-2 border border-gray-300 rounded-md resize-none"
+                      value={annotation.answers?.[0] || ""}
+                      onChange={(e) =>
+                        setConversation((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                annotations: prev.annotations?.map((a) =>
+                                  a._id === annotation._id
+                                    ? { ...a, answers: [e.target.value] }
+                                    : a
+                                ),
+                              }
+                            : null
+                        )
+                      }
+                      onBlur={(e) =>
+                        handleSaveAnswer(annotation._id, [e.target.value])
+                      }
+                      rows={3}
+                      wrap="soft"
+                      placeholder="Type your answer here..."
+                    ></textarea>
+                  )}
+
+                  {annotation.type === "multiple choice" && (
+                    <div className="flex flex-col space x-4">
+                      {annotation.options?.map((option, index) => (
+                        <label
+                          key={index}
+                          className="flex items-center space-x-2"
+                        >
+                          <input
+                            type="radio"
+                            name={annotation._id}
+                            checked={annotation.answers?.[0] === option}
+                            onChange={(e) =>
+                              setConversation((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      annotations: prev.annotations?.map((a) =>
+                                        a._id === annotation._id
+                                          ? { ...a, answers: [option] }
+                                          : a
+                                      ),
+                                    }
+                                  : null
+                              )
+                            }
+                            onBlur={(e) =>
+                              handleSaveAnswer(annotation._id, [option])
+                            }
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {annotation.type === "multiple answers" && (
+                    <div className="flex flex-col">
+                      {annotation.options?.map((option, index) => (
+                        <label key={index} className="flex space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={annotation.answers?.includes(option)}
+                            onChange={(e) =>
+                              setConversation((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      annotations: prev.annotations?.map((a) =>
+                                        a._id === annotation._id
+                                          ? {
+                                              ...a,
+                                              answers: e.target.checked
+                                                ? [...(a.answers || []), option]
+                                                : (a.answers || []).filter(
+                                                    (ans) => ans !== option
+                                                  ),
+                                            }
+                                          : a
+                                      ),
+                                    }
+                                  : null
+                              )
+                            }
+                            onBlur={(e) =>
+                              handleSaveAnswer(
+                                annotation._id,
+                                e.target.checked
+                                  ? [...(annotation.answers || []), option]
+                                  : (annotation.answers || []).filter(
+                                      (ans) => ans !== option
+                                    )
+                              )
+                            }
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {annotation.type === "scaler" && (
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="range"
+                        className="w-full"
+                        min={annotation.options?.[0] || "1"}
+                        max={annotation.options?.[1] || "10"}
+                        step={annotation.options?.[2] || "1"}
+                        value={
+                          annotation.answers?.[0] || annotation.options?.[0]
+                        }
+                        onChange={(e) =>
+                          setConversation((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  annotations: prev.annotations?.map((a) =>
+                                    a._id === annotation._id
+                                      ? { ...a, answers: [e.target.value] }
+                                      : a
+                                  ),
+                                }
+                              : null
+                          )
+                        }
+                        onBlur={(e) =>
+                          handleSaveAnswer(annotation._id, [e.target.value])
+                        }
+                      />
+                      <span className="text-white font-semibold">
+                        {annotation.answers?.[0] || annotation.options?.[0]}
+                      </span>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {modalOpen && editingAnnotation && (
-          <div
-            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
-              modalOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
-          >
-            <div
-              className={`bg-blue-800 rounded-lg shadow-lg p-6 w-96 transform transition-transform duration-300 ${
-                modalOpen ? "scale-100" : "scale-95"
-              }`}
-            >
-              <h2 className="text-white text-lg text-2xl font-bold mb-4">
-                {editingAnnotation.title}
-              </h2>
-
-              {/* Textbox for single-line input */}
-              {editingAnnotation.type === "textbox" && (
-                <input
-                  type="text"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter your answer"
-                  value={userAnswer ? userAnswer[0] : ""}
-                  onChange={(e) => setUserAnswer([e.target.value])}
-                />
-              )}
-
-              {/* Dropdown for multiple choice */}
-              {editingAnnotation.type === "multiple choice" && (
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
-                  value={userAnswer ? userAnswer[0] : ""}
-                  onChange={(e) => setUserAnswer([e.target.value])}
-                >
-                  <option value="">Select an Option</option>
-                  {editingAnnotation.options?.map((option, index) => (
-                    <option key={index} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {/* Checkboxes for multiple answers */}
-              {editingAnnotation.type === "multiple answers" && (
-                <div className="mt-4">
-                  {editingAnnotation.options?.map((option, index) => (
-                    <div key={index} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        checked={(userAnswer as string[]).includes(option)}
-                        onChange={(e) =>
-                          setUserAnswer((prev) =>
-                            e.target.checked
-                              ? [...(prev as string[]), option]
-                              : (prev as string[]).filter(
-                                  (ans) => ans !== option
-                                )
-                          )
-                        }
-                      />
-                      <label className="ml-2 text-white">{option}</label>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Modal Buttons */}
-              <div className="flex justify-end mt-6">
-                <button
-                  className="px-4 py-2 mr-2 bg-green-500 text-white rounded shadow hover:bg-green-400 focus:ring-2 focus:ring-green-300 transition ease-in-out"
-                  onClick={handleSaveAnswer}
-                >
-                  Save
-                </button>
-                <button
-                  className="px-4 py-2 bg-gray-500 text-white rounded shadow hover:bg-gray-400 focus:ring-2 focus:ring-gray-300 transition ease-in-out"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
       <div className="space-y-4">
         {conversation.messages.map((message, index) => (
