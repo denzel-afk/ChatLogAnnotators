@@ -16,8 +16,8 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
     fetch("/api/conversations")
       .then((res) => res.json())
       .then((data) => {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const transformedData = data.map((chatlog: any) => ({
-          /* eslint-disable-line @typescript-eslint/no-explicit-any */
           _id: chatlog._id || "unknown_id",
           stime: {
             text: chatlog.firstInteraction
@@ -46,6 +46,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         console.error("Error fetching conversations:", error);
       });
   }, []);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
