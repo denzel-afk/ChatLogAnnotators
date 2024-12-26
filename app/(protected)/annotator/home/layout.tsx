@@ -17,6 +17,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
       .then((res) => res.json())
       .then((data) => {
         const transformedData = data.map((chatlog: any) => ({
+          /* eslint-disable-line @typescript-eslint/no-explicit-any */
           _id: chatlog._id || "unknown_id",
           stime: {
             text: chatlog.firstInteraction
