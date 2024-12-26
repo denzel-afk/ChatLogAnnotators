@@ -77,26 +77,30 @@ export default function ConversationPage({
   }
 
   if (!conversation) {
-    return <p className="bg-black p-4 w-width">Loading conversation...</p>;
+    return (
+      <p className="bg-muted text-muted-foreground p-4 w-width">
+        Loading conversation...
+      </p>
+    );
   }
 
   return (
-    <div className="p-4">
-      <div>
-        <h1 className="text-2xl font-bold text-white">
+    <div className="p-4 bg-background text-foreground">
+      <div className="flex-none">
+        <h1 className="text-2xl font-bold text-foreground">
           Home: Annotate The Message
         </h1>
-        <table className="w-full mt-2 border border-white shadow-sm mb-3 text-white">
-          <thead>
+        <table className="w-full mt-2 border border-muted shadow-sm mb-3 text-foreground">
+          <thead className="bg-secondary text-secondary-foreground">
             <tr>
               <th
-                className="border-white border py-2 px-4 text-left"
+                className="border py-2 px-4 text-left"
                 style={{ width: "30%" }}
               >
                 Title
               </th>
               <th
-                className="border-white border py-2 px-4 text-left"
+                className="border py-2 px-4 text-left"
                 style={{ width: "60%" }}
               >
                 Answer
@@ -105,14 +109,14 @@ export default function ConversationPage({
           </thead>
           <tbody>
             {conversation.annotations?.map((annotation) => (
-              <tr key={annotation._id}>
-                <td className="py-2 px-4 border-white border">
+              <tr key={annotation._id} className="even:bg-secondary">
+                <td className="py-2 px-4 border border-muted">
                   {annotation.title}
                 </td>
-                <td className="py-2 px-4 border-white border">
+                <td className="py-2 px-4 border border-muted">
                   {annotation.type === "textbox" && (
                     <textarea
-                      className="w-full p-2 border border-gray-300 rounded-md resize-none"
+                      className="w-full p-2 border border-muted rounded-md bg-card text-card-foreground resize-none"
                       value={annotation.answers?.[0] || ""}
                       onChange={(e) =>
                         setConversation((prev) =>
@@ -219,7 +223,7 @@ export default function ConversationPage({
                     <div className="flex items-center space-x-4">
                       <input
                         type="range"
-                        className="w-full"
+                        className="w-full accent-primary"
                         min={annotation.options?.[0] || "1"}
                         max={annotation.options?.[1] || "10"}
                         step={annotation.options?.[2] || "1"}
@@ -244,7 +248,7 @@ export default function ConversationPage({
                           handleSaveAnswer(annotation._id, [e.target.value])
                         }
                       />
-                      <span className="text-white font-semibold">
+                      <span className="text-foreground font-semibold">
                         {annotation.answers?.[0] || annotation.options?.[0]}
                       </span>
                     </div>
@@ -256,18 +260,19 @@ export default function ConversationPage({
         </table>
       </div>
       <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-foreground">Conversations</h1>
         {conversation.messages.map((message, index) => (
           <div
             key={index}
             className={`p-4 rounded-lg ${
               message.role === "user"
-                ? "bg-blue-900 text-white ml-auto"
-                : "bg-gray-700 text-gray-300 mr-auto"
+                ? "bg-primary text-primary-foreground ml-auto"
+                : "bg-muted text-muted-foreground mr-auto"
             }`}
           >
             <p
               className={`font-semibold ${
-                message.role === "user" ? "text-blue-100" : "text-blue-400"
+                message.role === "user" ? "text-muted" : "text-muted-foreground"
               }`}
             >
               {message.role === "user" ? "You" : "AI"}

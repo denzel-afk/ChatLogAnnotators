@@ -56,59 +56,6 @@ export async function POST(req: Request) {
   }
 }
 
-
-// Update an annotation
-export async function PUT(req: Request) {
-  try {
-    const { id, annotation } = await req.json();
-
-    // Validate required fields
-    if (!id || !annotation || !annotation._id) {
-      console.log("Missing required fields:", { id, annotation });
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Validate ObjectId format
-    if (!ObjectId.isValid(id) || !ObjectId.isValid(annotation._id)) {
-      console.log("Invalid IDs:", { id, annotationId: annotation._id });
-      return NextResponse.json(
-        { error: "Invalid ID format" },
-        { status: 400 }
-      );
-    }
-
-    // Connect to the collection and update the annotation
-    const collection = await getCollection();
-    const result = await collection.updateOne(
-      {
-        _id: new ObjectId(id),
-        "annotations._id": new ObjectId(annotation._id),
-      },
-      { $set: { "annotations.$": annotation } }
-    );
-
-    if (result.modifiedCount === 0) {
-      console.log("Failed to update annotation:", { id, annotation });
-      return NextResponse.json(
-        { error: "Failed to update annotation" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ message: "Annotation updated successfully" });
-  } catch (error) {
-    console.error("Error updating annotation:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
-
-
 // Delete an annotation
 export async function DELETE(req: Request) {
   try {
@@ -141,7 +88,6 @@ export async function DELETE(req: Request) {
 }
 
 
-
 // Annotator response update
 export async function PATCH(req: Request) {
   try {
@@ -152,14 +98,11 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Validate ObjectId format
     if (!ObjectId.isValid(id) || !ObjectId.isValid(annotationId)) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
 
     const collection = await getCollection();
-
-    // Perform update using MongoDB's `$set` with the positional operator `$`
     const result = await collection.updateOne(
       { _id: new ObjectId(id), "annotations._id": new ObjectId(annotationId) },
       {

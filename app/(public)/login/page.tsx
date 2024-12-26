@@ -55,6 +55,12 @@ export default function LoginPage() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
+
   return (
     <div className="flex justify-center items-center h-screen bg-gray-800 flex-col">
       <motion.div>
@@ -88,6 +94,7 @@ export default function LoginPage() {
           className="w-full px-4 py-2 rounded bg-gray-600 text-white focus:outline-none"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <button
           onClick={handleLogin}

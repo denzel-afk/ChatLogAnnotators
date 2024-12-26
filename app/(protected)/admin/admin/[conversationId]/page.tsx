@@ -142,38 +142,40 @@ export default function ConversationPage({
   }
 
   if (!conversation) {
-    return <p className="bg-black p-4">Loading conversation...</p>;
+    return (
+      <p className="bg-background text-foreground p-4">
+        Loading conversation...
+      </p>
+    );
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-background text-foreground">
       <h1 className="text-xl font-bold pb-4">Admin: Manage Annotations</h1>
-      <h2 className="text-l font-bold">Conversation Annotation</h2>
-      <table className="w-full mt-4 border outline-white outline">
-        <thead>
+      <h2 className="text-lg font-semibold mb-4">Conversation Annotation</h2>
+      <table className="w-full mt-4 border">
+        <thead className="bg-secondary text-secondary-foreground">
           <tr>
-            <th className="border border-white" style={{ width: "20%" }}>
+            <th className="border" style={{ width: "20%" }}>
               Title
             </th>
-            <th className="border border-white" style={{ width: "10%" }}>
+            <th className="border" style={{ width: "10%" }}>
               Type
             </th>
-            <th className="border border-white" style={{ width: "50%" }}>
+            <th className="border" style={{ width: "50%" }}>
               Choices
             </th>
-            <th style={{ width: "20%" }}>Actions</th>
+            <th className="border" style={{ width: "20%" }}>
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           {conversation.annotations?.map((annotation) => (
-            <tr key={annotation._id}>
-              <td className="text-base break-words border border-white p-2">
-                {annotation.title}
-              </td>
-              <td className="text-base break-words border border-white p-2">
-                {annotation.type}
-              </td>
-              <td className="border-white border">
+            <tr key={annotation._id} className="even:bg-muted">
+              <td className="border p-2">{annotation.title}</td>
+              <td className="border p-2">{annotation.type}</td>
+              <td className="border">
                 {annotation.type !== "scaler" ? (
                   annotation.options?.map((option, index) => (
                     <p key={index} className="text-sm break-words pl-2 pr-1">
@@ -194,7 +196,7 @@ export default function ConversationPage({
                   </div>
                 )}
               </td>
-              <td className="py-2 px-4 border-b border-gray-300 text-center border-white border">
+              <td className="py-2 px-4 border-b text-center border">
                 <button
                   className="mb-2 px-3 py-1 text-sm text-white bg-blue-500 rounded-md shadow hover:bg-blue-400 focus:ring-2 focus:ring-blue-300 transition ease-in-out"
                   onClick={() => {
@@ -233,7 +235,7 @@ export default function ConversationPage({
 
       {deleteModal && (
         <div
-          className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 bg-background bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
             deleteModal ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
@@ -276,7 +278,7 @@ export default function ConversationPage({
 
       {modalOpen && (
         <div
-          className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 bg-background bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
             modalOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
@@ -491,20 +493,22 @@ export default function ConversationPage({
         {conversation.messages.map((message, index) => (
           <div
             key={index}
-            className={`p-4 rounded-lg ${
+            className={`p-4 rounded-lg shadow-md ${
               message.role === "user"
-                ? "bg-blue-900 text-white ml-auto"
-                : "bg-gray-700 text-gray-300 mr-auto"
+                ? "bg-primary text-primary-foreground ml-auto"
+                : "bg-muted text-muted-foreground mr-auto"
             }`}
           >
             <p
               className={`font-semibold ${
-                message.role === "user" ? "text-blue-100" : "text-blue-400"
+                message.role === "user"
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               {message.role === "user" ? "You" : "AI"}
             </p>
-            <p className="mt-2 leading-relaxed">{message.content}</p>
+            <p className="mt-2 leading-relaxed text-sm">{message.content}</p>
           </div>
         ))}
       </div>

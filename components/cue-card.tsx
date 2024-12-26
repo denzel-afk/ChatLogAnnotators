@@ -9,27 +9,37 @@ interface CueCardProps {
   onClick: () => void;
 }
 
-const CueCard: React.FC<CueCardProps> = ({ person, firstInteraction, lastInteraction, title, onClick }) => {
+const CueCard: React.FC<CueCardProps> = ({
+  person,
+  firstInteraction,
+  lastInteraction,
+  title,
+  onClick,
+}) => {
   return (
     <motion.div
-      whileHover={{ scale: 1.05, boxShadow: "0px 4px 4px rgba(128, 128, 128, 0.5)" }}
+      whileHover={{
+        scale: 1.05,
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
+      }}
       whileTap={{ scale: 0.95 }}
-      transition = {{
+      transition={{
         type: "spring",
         stiffness: 200,
         damping: 15,
-        duration: 0.8,
       }}
-      className="m-4 p-4 rounded-lg bg-gray-700 text-white cursor-pointer shadow-md transition-transform"
+      className="mb-4 p-4 rounded-md bg-secondary text-secondary-foreground cursor-pointer shadow-sm border border-sidebar-border"
       onClick={onClick}
     >
-      <p className="font-bold text-xl break-words text-center">{title}</p>
-      <p className="font-normal text-base break-words">{person}</p>
-      <p className="text-xs text-gray-300 break-words">
-        <strong>First Interaction:</strong> {new Date(firstInteraction).toLocaleString()}
+      <p className="font-bold text-lg break-words text-center">{title}</p>
+      <p className="font-medium text-sm break-words mt-2">{person}</p>
+      <p className="text-xs break-words mt-1">
+        <strong>First Interaction:</strong>{" "}
+        {new Date(firstInteraction).toLocaleString()}
       </p>
-      <p className="text-xs text-gray-300 break-words">
-        <strong>Last Interaction:</strong> {new Date(lastInteraction).toLocaleString()}
+      <p className="text-xs break-words mt-1">
+        <strong>Last Interaction:</strong>{" "}
+        {new Date(lastInteraction).toLocaleString()}
       </p>
     </motion.div>
   );

@@ -1,10 +1,25 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const url = new URL(req.url);
+    const searchQuery = url.searchParams.get("query") || ""; // Get the 'query' parameter
     const collection = await getCollection();
-    const documents = await collection.find({}).toArray();
+
+    let filter = {};
+    if (searchQuery) {
+      filter = {
+        $or: [
+          { "person": { $regex: searchQuery, $options: "i" } },
+          { "stime.text": { $regex: searchQuery, $options: "i" } },
+          { "last_interact.text": { $regex: searchQuery, $options: "i" } },
+          { "messages.content": { $regex: searchQuery, $options: "i" } },
+        ],
+      };
+    }
+
+    const documents = await collection.find(filter).toArray();
 
     const conversations = documents.map((doc) => ({
       _id: doc._id.toString(),

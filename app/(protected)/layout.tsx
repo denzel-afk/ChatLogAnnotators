@@ -17,18 +17,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-black text-white">
+      <body className="bg-primary text-foreground flex flex-row sticky top-0">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
           <SidebarProvider>
             <AppSidebar />
             <main>
-              <SidebarTrigger />
-              <ModeToggle />
+              <div className="flex flex-row">
+                <SidebarTrigger />
+                <ModeToggle />
+              </div>
               {children}
             </main>
           </SidebarProvider>

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         if (!user) {
             return new Response('User not found', { status: 404 });
         }
-
+        
         return new Response(JSON.stringify(user), { status: 200 });
     } catch {
         return new Response('Internal Server Error', { status: 500 });
