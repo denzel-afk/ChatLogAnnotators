@@ -5,6 +5,7 @@ import ConversationSidebar from "@/components/conversation-sidebar";
 import { Conversation } from "@/types/conversations";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
+  /* eslint-disable @typescript-eslint/no-unused-var */
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
@@ -22,6 +23,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         const response = await fetch(`/api/conversations${queryParam}`);
         const data = await response.json();
 
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(data)) {
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
@@ -58,6 +60,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         setFilteredConversations([]);
       }
     };
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     fetchConversations();
   }, [searchQuery]);
@@ -93,4 +96,5 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
+  /* eslint-emsable @typescript-eslint/no-unused-var */
 }
