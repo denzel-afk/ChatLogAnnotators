@@ -16,16 +16,22 @@ const ConversationSidebar: React.FC<ConvSidebarProps> = ({
       <h2 className="text-lg font-semibold mb-4 tracking-wide">
         Conversations
       </h2>
-      {conversations.map((conv) => (
-        <CueCard
-          key={conv._id}
-          title={conv.annotations?.[0]?.title || "Untitled"}
-          person={conv.person}
-          firstInteraction={conv.stime.text}
-          lastInteraction={conv.last_interact.text}
-          onClick={() => onConversationSelect(conv._id)}
-        />
-      ))}
+      {conversations.length > 0 ? (
+        conversations.map((conv) => (
+          <CueCard
+            key={conv._id}
+            title={conv.annotations?.[0]?.title || "Untitled"}
+            person={conv.person}
+            firstInteraction={conv.stime.text}
+            lastInteraction={conv.last_interact.text}
+            onClick={() => onConversationSelect(conv._id)}
+          />
+        ))
+      ) : (
+        <div className="text-sm text-center text-gray-500 mt-8">
+          Cannot find conversation
+        </div>
+      )}
     </div>
   );
 };

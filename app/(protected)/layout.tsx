@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-primary text-foreground flex flex-row sticky top-0">
+      <body className="bg-primary text-foreground flex flex-row ">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -27,7 +27,7 @@ export default function RootLayout({
           <SidebarProvider>
             <AppSidebar />
             <main>
-              <div className="flex flex-row">
+              <div className="flex flex-row sticky top-0 z-10 bg-background p-1 justify-between">
                 <SidebarTrigger />
                 <ModeToggle />
               </div>

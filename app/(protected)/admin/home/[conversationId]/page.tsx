@@ -85,7 +85,7 @@ export default function ConversationPage({
   }
 
   return (
-    <div className="p-4 bg-background text-foreground">
+    <div className="p-4 bg-background text-foreground h-screen flex flex-col">
       <div className="flex-none">
         <h1 className="text-2xl font-bold text-foreground">
           Home: Annotate The Message

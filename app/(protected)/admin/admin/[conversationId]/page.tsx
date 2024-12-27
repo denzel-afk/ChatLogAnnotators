@@ -150,7 +150,7 @@ export default function ConversationPage({
   }
 
   return (
-    <div className="p-4 bg-background text-foreground">
+    <div className="p-4 bg-background text-foreground h-screen">
       <h1 className="text-xl font-bold pb-4">Admin: Manage Annotations</h1>
       <h2 className="text-lg font-semibold mb-4">Conversation Annotation</h2>
       <table className="w-full mt-4 border">
