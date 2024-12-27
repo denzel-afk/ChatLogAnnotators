@@ -5,7 +5,7 @@ import ConversationSidebar from "@/components/conversation-sidebar";
 import { Conversation } from "@/types/conversations";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  /* eslint-disable @typescript-eslint/no-unused-var */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
@@ -96,5 +96,5 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
-  /* eslint-enable @typescript-eslint/no-unused-var */
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 }
