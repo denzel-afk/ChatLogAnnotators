@@ -19,11 +19,17 @@ export default function ConversationPage({
     answers?: string[];
   } | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [modalMessageOpen, setModalMessageOpen] = useState<boolean>(false);
   const [deleteModal, setDeleteModal] = useState<boolean>(false);
   const [targetAnnotation, setTargetAnnotation] = useState<Annotation | null>(
     null
   );
-
+  const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(
+    null
+  );
+  const [messageAnnotation, setMessageAnnotation] = useState<
+    Annotation[] | null
+  >(null);
   useEffect(() => {
     params
       .then(({ conversationId }) => {
@@ -133,6 +139,109 @@ export default function ConversationPage({
               }
             : null
         );
+      })
+      .catch((err) => console.error("Error editing annotation:", err));
+  };
+  const handleAddMessageAnnotation = (messageIndex: number) => {
+    if (
+      !newAnnotation ||
+      !newAnnotation.title ||
+      !newAnnotation.type ||
+      !conversationId
+    ) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: conversationId,
+        annotation: {
+          title: newAnnotation.title,
+          type: newAnnotation.type,
+          options: newAnnotation.options || [],
+          answers: newAnnotation.answers || [],
+        },
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to add annotation");
+        }
+        return res.json();
+      })
+      .then(() => {
+        // Refresh conversation to update annotations
+        fetch(`/api/conversations/${conversationId}`)
+          .then((res) => res.json())
+          .then((data) => setConversation(data));
+        setModalMessageOpen(false);
+        setNewAnnotation(null);
+      })
+      .catch((err) => console.error("Error adding annotation:", err));
+  };
+
+  const handleDeleteMessageAnnotation = (
+    messageIndex: number,
+    annotationId: string
+  ) => {
+    if (!conversationId || !annotationId || messageIndex === undefined) {
+      console.error("Missing required fields for deleting annotation");
+      return;
+    }
+
+    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: conversationId, annotationId }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to delete annotation");
+        }
+        return res.json();
+      })
+      .then(() => {
+        // Update conversation state
+        fetch(`/api/conversations/${conversationId}`)
+          .then((res) => res.json())
+          .then((data) => setConversation(data));
+      })
+      .catch((err) => console.error("Error deleting annotation:", err));
+  };
+
+  const handleEditMessageAnnotation = (
+    messageIndex: number,
+    annotationId: string,
+    updatedFields: Partial<Annotation>
+  ) => {
+    if (!conversationId || !annotationId || messageIndex === undefined) {
+      console.error("Missing required fields for editing annotation");
+      return;
+    }
+
+    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: conversationId,
+        annotationId,
+        updatedFields,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to edit annotation");
+        }
+        return res.json();
+      })
+      .then(() => {
+        // Update conversation state
+        fetch(`/api/conversations/${conversationId}`)
+          .then((res) => res.json())
+          .then((data) => setConversation(data));
       })
       .catch((err) => console.error("Error editing annotation:", err));
   };
@@ -489,26 +598,340 @@ export default function ConversationPage({
         </div>
       )}
 
+      {modalMessageOpen && (
+        <div
+          className={`fixed inset-0 bg-background bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
+            modalMessageOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div
+            className={`bg-blue-800 rounded-lg shadow-lg p-6 w-96 transform transition-transform duration-300 ${
+              modalMessageOpen ? "scale-100" : "scale-95"
+            }`}
+          >
+            <h2 className="text-white text-lg font-bold mb-4">
+              {newAnnotation?._id ? "Edit Annotation" : "Add Annotation"}
+            </h2>
+            <input
+              type="text"
+              placeholder="Title"
+              className="border p-2 w-full mb-4 rounded"
+              value={newAnnotation?.title || ""}
+              onChange={(e) =>
+                setNewAnnotation((prev) => ({
+                  ...prev,
+                  title: e.target.value,
+                  type: prev?.type || "multiple choice",
+                  options: prev?.options || [],
+                }))
+              }
+            />
+            <select
+              className="border p-2 w-full mb-4 rounded"
+              value={newAnnotation?.type || "multiple choice"}
+              onChange={(e) =>
+                setNewAnnotation((prev) => ({
+                  ...prev,
+                  type: e.target.value,
+                  title: prev?.title || "",
+                  options:
+                    e.target.value === "textbox" ? [] : prev?.options || [],
+                }))
+              }
+            >
+              <option value="multiple choice">Multiple Choice</option>
+              <option value="multiple answers">Multiple Answers</option>
+              <option value="textbox">Textbox</option>
+              <option value="scaler">Scaler</option>
+            </select>
+
+            {(newAnnotation?.type === "multiple choice" ||
+              newAnnotation?.type === "multiple answers") && (
+              <div className="mb-4">
+                <h3 className="font-bold mb-2 text-white">Options</h3>
+                {newAnnotation.options?.map((option, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={option}
+                      className="border p-2 flex-grow rounded"
+                      placeholder={`Option ${index + 1}`}
+                      onChange={(e) =>
+                        setNewAnnotation((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                options: prev.options?.map((opt, i) =>
+                                  i === index ? e.target.value : opt
+                                ),
+                              }
+                            : {
+                                title: "",
+                                type: "multiple choice",
+                                options: [],
+                              }
+                        )
+                      }
+                    />
+                    <button
+                      className="ml-2 px-2 py-1 bg-red-500 text-white rounded shadow hover:bg-red-400 focus:ring-2 focus:ring-red-300 transition ease-in-out"
+                      onClick={() =>
+                        setNewAnnotation((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                options: prev.options?.filter(
+                                  (_, i) => i !== index
+                                ),
+                              }
+                            : {
+                                title: "",
+                                type: "multiple choice",
+                                options: [],
+                              }
+                        )
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-400 focus:ring-2 focus:ring-blue-300 transition ease-in-out"
+                  onClick={() =>
+                    setNewAnnotation((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            options: [...(prev.options || []), ""],
+                          }
+                        : { title: "", type: "multiple choice", options: [""] }
+                    )
+                  }
+                >
+                  Add Option
+                </button>
+              </div>
+            )}
+            {newAnnotation?.type === "scaler" && (
+              <div className="mb-4">
+                <h3 className="font-bold mb-2 text-white">Scaler Range</h3>
+                <div className="flex space-x-4 mb-4">
+                  <input
+                    type="number"
+                    className="border p-2 rounded w-1/2"
+                    placeholder="Min Value"
+                    value={newAnnotation.options?.[0] || ""}
+                    onChange={(e) =>
+                      setNewAnnotation((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              options: [
+                                e.target.value,
+                                prev.options?.[1] || "10",
+                                prev.options?.[2] || "1",
+                              ],
+                            }
+                          : null
+                      )
+                    }
+                  />
+                  <input
+                    type="number"
+                    className="border p-2 rounded w-1/2"
+                    placeholder="Max Value"
+                    value={newAnnotation.options?.[1] || ""}
+                    onChange={(e) =>
+                      setNewAnnotation((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              options: [
+                                prev.options?.[0] || "1",
+                                e.target.value,
+                                prev.options?.[2] || "1",
+                              ],
+                            }
+                          : null
+                      )
+                    }
+                  />
+                </div>
+                <input
+                  type="number"
+                  className="border p-2 rounded w-1/2"
+                  placeholder="Step Value"
+                  value={newAnnotation.options?.[2] || ""}
+                  onChange={(e) =>
+                    setNewAnnotation((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            options: [
+                              prev.options?.[0] || "1",
+                              prev.options?.[1] || "10",
+                              e.target.value,
+                            ],
+                          }
+                        : null
+                    )
+                  }
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 mr-2 bg-green-500 text-white rounded shadow hover:bg-green-400 focus:ring-2 focus:ring-green-300 transition ease-in-out"
+                onClick={() => {
+                  if (newAnnotation?._id) {
+                    handleEditMessageAnnotation(
+                      activeMessageIndex!,
+                      newAnnotation._id,
+                      {
+                        title: newAnnotation.title,
+                        type: newAnnotation.type,
+                        options: newAnnotation.options,
+                      }
+                    );
+                  } else {
+                    handleAddMessageAnnotation(activeMessageIndex!);
+                  }
+                  setModalMessageOpen(false);
+                  setNewAnnotation(null);
+                }}
+              >
+                Save
+              </button>
+              <button
+                className="px-4 py-2 bg-gray-500 text-white rounded shadow hover:bg-gray-400 focus:ring-2 focus:ring-gray-300 transition ease-in-out"
+                onClick={() => setModalMessageOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4 mt-8">
         {conversation.messages.map((message, index) => (
           <div
             key={index}
-            className={`p-4 rounded-lg shadow-md ${
+            className={`p-4 rounded-lg ${
               message.role === "user"
                 ? "bg-primary text-primary-foreground ml-auto"
                 : "bg-muted text-muted-foreground mr-auto"
             }`}
           >
-            <p
-              className={`font-semibold ${
-                message.role === "user"
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {message.role === "user" ? "You" : "AI"}
+            <p className="font-semibold">
+              {message.role === "user" ? "You" : "AI"}: {message.content}
             </p>
-            <p className="mt-2 leading-relaxed text-sm">{message.content}</p>
+            <button
+              className="bg-yellow-200 rounded-md p-2 text-black mt-2"
+              onClick={() => {
+                setActiveMessageIndex(
+                  activeMessageIndex === index ? null : index
+                );
+                setMessageAnnotation(message.annotations || []);
+              }}
+            >
+              {activeMessageIndex === index
+                ? "Hide Annotations"
+                : "Show Annotations"}
+            </button>
+
+            {activeMessageIndex === index && (
+              <div className="mt-4">
+                <table className="w-full border">
+                  <thead className="bg-secondary text-secondary-foreground">
+                    <tr>
+                      <th className="border" style={{ width: "20%" }}>
+                        Title
+                      </th>
+                      <th className="border" style={{ width: "10%" }}>
+                        Type
+                      </th>
+                      <th className="border" style={{ width: "50%" }}>
+                        Choices
+                      </th>
+                      <th className="border" style={{ width: "20%" }}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {messageAnnotation?.map((annotation) => (
+                      <tr key={annotation._id} className="even:bg-muted">
+                        <td className="border p-2">{annotation.title}</td>
+                        <td className="border p-2">{annotation.type}</td>
+                        <td className="border">
+                          {annotation.type !== "scaler" ? (
+                            annotation.options?.map((option, index) => (
+                              <p
+                                key={index}
+                                className="text-sm break-words pl-2 pr-1"
+                              >
+                                - {option}
+                              </p>
+                            ))
+                          ) : (
+                            <div>
+                              <p className="text-sm break-words pl-2 pr-1">
+                                Min Value: {annotation.options?.[0]}
+                              </p>
+                              <p className="text-sm break-words pl-2 pr-1">
+                                Max Value: {annotation.options?.[1]}
+                              </p>
+                              <p className="text-sm break-words pl-2 pr-1">
+                                Step Value: {annotation.options?.[2]}
+                              </p>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-2 px-4 border-b text-center border">
+                          <button
+                            className="mb-2 px-3 py-1 text-sm text-white bg-blue-500 rounded-md shadow hover:bg-blue-400 focus:ring-2 focus:ring-blue-300 transition ease-in-out"
+                            onClick={() => {
+                              setNewAnnotation({
+                                _id: annotation._id || "",
+                                title: annotation.title || "",
+                                type: annotation.type || "multiple choice",
+                                options: annotation.options || [],
+                                answers: annotation.answers || [],
+                              });
+                              setModalMessageOpen(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="ml-2 px-3 py-1 text-sm text-white bg-red-500 rounded-md shadow hover:bg-red-400 focus:ring-2 focus:ring-red-300 transition ease-in-out"
+                            onClick={() => {
+                              handleDeleteMessageAnnotation(
+                                index,
+                                annotation._id
+                              );
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex justify-between items-center mt-4">
+                  <button
+                    className="bg-blue-500 p-2 text-white rounded-md"
+                    onClick={() => setModalMessageOpen(true)}
+                  >
+                    Add Annotation
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
