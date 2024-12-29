@@ -39,7 +39,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
     }
   }
   
-  export async function PATCH(req: Request, context: any) {
+  export async function PATCH(req: Request, context: any) { /* eslint-disable-line @typescript-eslint/no-explicit-any */
     const { id, annotationId, updatedFields } = await req.json();
     const params = await context.params;
     const { messageIndex } = params;
