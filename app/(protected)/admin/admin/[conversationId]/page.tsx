@@ -61,11 +61,11 @@ export default function ConversationPage({
       return;
     }
 
-    fetch(`/api/conversations/${conversationId}`, {
+    fetch(`/api/conversations`, {
+      // Updated to use global endpoint
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: conversationId,
         annotation: { ...newAnnotation, _id: undefined },
       }),
     })
@@ -76,7 +76,14 @@ export default function ConversationPage({
       .then(() => {
         setModalOpen(false);
         setNewAnnotation(null);
-        // Fetch updated conversation data
+        setConversation((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                annotations: [...(prev.annotations || []), newAnnotation],
+              }
+            : null
+        );
         fetch(`/api/conversations/${conversationId}`)
           .then((res) => res.json())
           .then((data) => setConversation(data));
@@ -89,27 +96,22 @@ export default function ConversationPage({
 
     console.log("Deleting annotation...");
 
-    fetch(`/api/conversations/${conversationId}`, {
+    fetch(`/api/conversations/`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: conversationId, annotationId }),
+      body: JSON.stringify({ annotationId }),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to delete annotation");
         return res.json();
       })
       .then(() => {
-        console.log("Annotation deleted successfully");
-        setConversation((prev) =>
-          prev
-            ? {
-                ...prev,
-                annotations: prev.annotations?.filter(
-                  (annotation) => annotation._id !== annotationId
-                ),
-              }
-            : null
-        );
+        console.log("Annotation deleted globally successfully");
+        // Optionally, refresh the conversation to reflect changes
+        fetch(`/api/conversations/${conversationId}`)
+          .then((res) => res.json())
+          .then((data) => setConversation(data))
+          .catch((err) => console.error("Error refreshing conversation:", err));
       })
       .catch((err) => console.error("Error deleting annotation:", err));
   };
@@ -118,31 +120,26 @@ export default function ConversationPage({
     annotationId: string,
     updatedFields: Partial<Annotation>
   ) => {
-    fetch(`/api/conversations/${conversationId}`, {
+    fetch(`/api/conversations`, {
+      // Updated to use global endpoint
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: conversationId, annotationId, updatedFields }),
+      body: JSON.stringify({ annotationId, updatedFields }),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to edit annotation");
         return res.json();
       })
       .then(() => {
-        setConversation((prev) =>
-          prev
-            ? {
-                ...prev,
-                annotations: prev.annotations?.map((annotation) =>
-                  annotation._id === annotationId
-                    ? { ...annotation, ...updatedFields }
-                    : annotation
-                ),
-              }
-            : null
-        );
+        console.log("Annotation edited successfully");
+        // Fetch all conversations to reflect updates
+        fetch(`/api/conversations/${conversationId}`)
+          .then((res) => res.json())
+          .then((data) => setConversation(data));
       })
       .catch((err) => console.error("Error editing annotation:", err));
   };
+
   const handleAddMessageAnnotation = (messageIndex: number) => {
     if (
       !newAnnotation ||
