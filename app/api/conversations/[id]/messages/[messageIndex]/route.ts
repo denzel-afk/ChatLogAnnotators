@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import {getCollection } from "@/lib/cosmosdb";
+import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";
 
 // add a new annotaion to a message

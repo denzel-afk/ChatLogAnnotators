@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Conversation } from "@/types/conversations";
+import { Conversation, Annotation } from "@/types/conversations";
 
 export default function ConversationPage({
   params,
@@ -11,6 +11,10 @@ export default function ConversationPage({
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(
+    null
+  );
+  const [messageAnnotation, setMessageAnnotation] = useState<Annotation[]>([]);
 
   useEffect(() => {
     params
@@ -72,6 +76,56 @@ export default function ConversationPage({
       .catch((err) => console.error("Error saving answer:", err));
   };
 
+  const handleSaveMessageAnnotation = (
+    annotationId: string,
+    updatedAnswer: string[]
+  ) => {
+    if (!conversationId || activeMessageIndex === null) return;
+    fetch(
+      `/api/conversations/${conversationId}/messages/${activeMessageIndex}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: conversationId,
+          messageIndex: activeMessageIndex,
+          annotationId,
+          updatedFields: {
+            answers: updatedAnswer,
+          },
+        }),
+      }
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to save message annotation");
+        return res.json();
+      })
+      .then(() => {
+        setConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.map((message, index) =>
+                  index === activeMessageIndex
+                    ? {
+                        ...message,
+                        annotations: message.annotations?.map((annotation) =>
+                          annotation._id === annotationId
+                            ? { ...annotation, answers: updatedAnswer }
+                            : annotation
+                        ),
+                      }
+                    : message
+                ),
+              }
+            : null
+        );
+      })
+      .catch((err) => console.error("Error saving message annotation:", err));
+  };
+
   if (error) {
     return <p className="text-red-500 p-4">{error}</p>;
   }
@@ -85,8 +139,8 @@ export default function ConversationPage({
   }
 
   return (
-    <div className="p-4 bg-background text-foreground">
-      <div>
+    <div className="p-4 bg-background text-foreground h-screen flex flex-col">
+      <div className="flex-none">
         <h1 className="text-2xl font-bold text-foreground">
           Home: Annotate The Message
         </h1>
@@ -109,7 +163,7 @@ export default function ConversationPage({
           </thead>
           <tbody>
             {conversation.annotations?.map((annotation) => (
-              <tr key={annotation._id} className="even:bg-muted">
+              <tr key={annotation._id} className="even:bg-secondary">
                 <td className="py-2 px-4 border border-muted">
                   {annotation.title}
                 </td>
@@ -142,7 +196,7 @@ export default function ConversationPage({
                   )}
 
                   {annotation.type === "multiple choice" && (
-                    <div className="flex flex-col space x-4">
+                    <div className="flex flex-col">
                       {annotation.options?.map((option, index) => (
                         <label
                           key={index}
@@ -278,6 +332,181 @@ export default function ConversationPage({
               {message.role === "user" ? "You" : "AI"}
             </p>
             <p className="mt-2 leading-relaxed">{message.content}</p>
+            <button
+              className="bg-yellow-200 rounded-md p-2 text-black mt-2 hover:bg-yellow-300 ease-in-out transition duration-300"
+              onClick={() => {
+                setActiveMessageIndex(
+                  activeMessageIndex === index ? null : index
+                );
+                setMessageAnnotation(message.annotations || []);
+              }}
+            >
+              {activeMessageIndex === index
+                ? "Hide Annotations"
+                : "Show Annotations"}
+            </button>
+            {activeMessageIndex === index && (
+              <table className="w-full mt-2 border border-muted shadow-sm mb-3 text-foreground">
+                <thead className="bg-secondary text-secondary-foreground">
+                  <tr>
+                    <th
+                      className="border py-2 px-4 text-left"
+                      style={{ width: "30%" }}
+                    >
+                      Title
+                    </th>
+                    <th
+                      className="border py-2 px-4 text-left"
+                      style={{ width: "60%" }}
+                    >
+                      Answer
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {messageAnnotation.map((annotation) => (
+                    <tr key={annotation._id} className="even:bg-secondary">
+                      <td className="py-2 px-4 border border-muted">
+                        {annotation.title}
+                      </td>
+                      <td className="py-2 px-4 border border-muted">
+                        {annotation.type === "textbox" && (
+                          <textarea
+                            className="w-full p-2 border border-muted rounded-md bg-card text-card-foreground resize-none"
+                            value={annotation.answers?.[0] || ""}
+                            onChange={(e) =>
+                              setMessageAnnotation((prev) =>
+                                prev.map((a) =>
+                                  a._id === annotation._id
+                                    ? { ...a, answers: [e.target.value] }
+                                    : a
+                                )
+                              )
+                            }
+                            onBlur={(e) =>
+                              handleSaveMessageAnnotation(annotation._id, [
+                                e.target.value,
+                              ])
+                            }
+                            rows={3}
+                            wrap="soft"
+                            placeholder="Type your answer here..."
+                          ></textarea>
+                        )}
+
+                        {annotation.type === "multiple choice" && (
+                          <div className="flex flex-col">
+                            {annotation.options?.map((option, idx) => (
+                              <label
+                                key={idx}
+                                className="flex items-center space-x-2"
+                              >
+                                <input
+                                  type="radio"
+                                  name={annotation._id}
+                                  checked={annotation.answers?.[0] === option}
+                                  onChange={() =>
+                                    setMessageAnnotation((prev) =>
+                                      prev.map((a) =>
+                                        a._id === annotation._id
+                                          ? { ...a, answers: [option] }
+                                          : a
+                                      )
+                                    )
+                                  }
+                                  onBlur={() =>
+                                    handleSaveMessageAnnotation(
+                                      annotation._id,
+                                      [option]
+                                    )
+                                  }
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {annotation.type === "multiple answers" && (
+                          <div className="flex flex-col">
+                            {annotation.options?.map((option, idx) => (
+                              <label key={idx} className="flex space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={annotation.answers?.includes(option)}
+                                  onChange={(e) =>
+                                    setMessageAnnotation((prev) =>
+                                      prev.map((a) =>
+                                        a._id === annotation._id
+                                          ? {
+                                              ...a,
+                                              answers: e.target.checked
+                                                ? [...(a.answers || []), option]
+                                                : (a.answers || []).filter(
+                                                    (ans) => ans !== option
+                                                  ),
+                                            }
+                                          : a
+                                      )
+                                    )
+                                  }
+                                  onBlur={(e) =>
+                                    handleSaveMessageAnnotation(
+                                      annotation._id,
+                                      e.target.checked
+                                        ? [
+                                            ...(annotation.answers || []),
+                                            option,
+                                          ]
+                                        : (annotation.answers || []).filter(
+                                            (ans) => ans !== option
+                                          )
+                                    )
+                                  }
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {annotation.type === "scaler" && (
+                          <div className="flex items-center space-x-4">
+                            <input
+                              type="range"
+                              className="w-full accent-primary"
+                              min={annotation.options?.[0] || "1"}
+                              max={annotation.options?.[1] || "10"}
+                              step={annotation.options?.[2] || "1"}
+                              value={
+                                annotation.answers?.[0] ||
+                                annotation.options?.[0]
+                              }
+                              onChange={(e) =>
+                                setMessageAnnotation((prev) =>
+                                  prev.map((a) =>
+                                    a._id === annotation._id
+                                      ? { ...a, answers: [e.target.value] }
+                                      : a
+                                  )
+                                )
+                              }
+                              onBlur={(e) =>
+                                handleSaveMessageAnnotation(annotation._id, [
+                                  e.target.value,
+                                ])
+                              }
+                            />
+                            <span className="text-foreground font-semibold">
+                              {annotation.answers?.[0] ||
+                                annotation.options?.[0]}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         ))}
       </div>
