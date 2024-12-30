@@ -20,17 +20,34 @@ export async function POST(req: Request) {
       answers: annotation.answers || null,
     };
 
-    const result = await collection.updateMany(
-      {},
-      { $push: { "messages.$[].annotations": newAnnotation } as any}  /* eslint-disable-line @typescript-eslint/no-explicit-any */
-    );
+    const batchSize = 100; // Number of documents per batch
+    let skip = 0;
+    let hasMoreDocuments = true;
+    let totalModified = 0;
 
-    if (result.modifiedCount === 0) {
-      return NextResponse.json({ error: "Failed to add annotation to all messages" }, { status: 500 });
+    while (hasMoreDocuments) {
+      // Fetch documents in batches
+      const documents = await collection.find({}).skip(skip).limit(batchSize).toArray();
+
+      if (documents.length === 0) {
+        hasMoreDocuments = false;
+        break;
+      }
+
+      // Process each document in the current batch
+      for (const doc of documents) {
+        const result = await collection.updateOne(
+          { _id: doc._id },
+          { $push: { "messages.$[].annotations": newAnnotation } as any } // eslint-disable-line @typescript-eslint/no-explicit-any
+        );
+        totalModified += result.modifiedCount;
+      }
+
+      skip += batchSize; // Move to the next batch
     }
 
     return NextResponse.json({
-      message: "Annotation added successfully to all messages in all conversations",
+      message: `Annotation added successfully to all messages in ${totalModified} documents`,
     });
   } catch (error) {
     console.error("Error adding annotation to all messages:", error);
