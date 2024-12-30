@@ -20,13 +20,12 @@ export async function POST(req: Request) {
       answers: annotation.answers || null,
     };
 
-    const batchSize = 100; // Number of documents per batch
+    const batchSize = 100; 
     let skip = 0;
     let hasMoreDocuments = true;
     let totalModified = 0;
 
     while (hasMoreDocuments) {
-      // Fetch documents in batches
       const documents = await collection.find({}).skip(skip).limit(batchSize).toArray();
 
       if (documents.length === 0) {
