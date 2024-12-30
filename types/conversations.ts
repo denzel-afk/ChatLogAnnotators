@@ -27,3 +27,10 @@ export interface Message {
     person: string;
   }
   
+  export interface ModalProps {
+    title: string;
+    isOpen: boolean;
+    children: React.ReactNode;
+    onSave: () => void;
+    onClose: () => void;
+  }
