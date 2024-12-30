@@ -62,7 +62,6 @@ export default function ConversationPage({
     }
 
     fetch(`/api/conversations`, {
-      // Updated to use global endpoint
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -270,11 +269,10 @@ export default function ConversationPage({
       return;
     }
 
-    fetch(`/api/conversations/${conversationId}/messages/`, {
+    fetch(`/api/conversations/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: conversationId,
         annotation: {
           title: newAnnotation.title,
           type: newAnnotation.type,

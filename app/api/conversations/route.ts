@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
-import { ObjectId } from "mongodb";
+import { ObjectId, Collection } from "mongodb";
 
+const MAX_BSON_SIZE = 16 * 1024 * 1024; // 16 MB
+
+async function canAddAnnotation(collection: Collection, docId: ObjectId, newAnnotation: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const document = await collection.findOne({ _id: docId });
+  const currentSize = Buffer.byteLength(JSON.stringify(document));
+  const newAnnotationSize = Buffer.byteLength(JSON.stringify(newAnnotation));
+  return currentSize + newAnnotationSize < MAX_BSON_SIZE;
+}
+
+// GET API: Search conversations
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -12,7 +22,7 @@ export async function GET(req: Request) {
     if (searchQuery) {
       filter = {
         $or: [
-          { "person": { $regex: searchQuery, $options: "i" } },
+          { person: { $regex: searchQuery, $options: "i" } },
           { "stime.text": { $regex: searchQuery, $options: "i" } },
           { "last_interact.text": { $regex: searchQuery, $options: "i" } },
           { "messages.content": { $regex: searchQuery, $options: "i" } },
@@ -41,6 +51,7 @@ export async function GET(req: Request) {
   }
 }
 
+// POST API: Add annotation with batching
 export async function POST(req: Request) {
   try {
     const { annotation } = await req.json();
@@ -53,12 +64,7 @@ export async function POST(req: Request) {
     }
 
     const collection = await getCollection();
-    await collection.updateMany(
-      { annotations: { $exists: false } }, 
-      { $set: { annotations: [] } }
-    );
-
-    // Create new annotation
+    const batchSize = 100; // Process 100 documents per batch
     const newAnnotation = {
       _id: new ObjectId(),
       title: annotation.title,
@@ -67,20 +73,33 @@ export async function POST(req: Request) {
       answers: annotation.answers || null,
     };
 
-    const result = await collection.updateMany(
-      {}, // Apply to all documents
-      { $push: { annotations: newAnnotation } as any } /* eslint-disable-line @typescript-eslint/no-explicit-any */
-    );
+    let skip = 0;
+    let hasMoreDocuments = true;
 
-    if (result.modifiedCount === 0) {
-      return NextResponse.json(
-        { error: "Failed to add annotation to any conversation" },
-        { status: 500 }
-      );
+    while (hasMoreDocuments) {
+      const documents = await collection.find({}).skip(skip).limit(batchSize).toArray();
+
+      if (documents.length === 0) {
+        hasMoreDocuments = false;
+        break;
+      }
+
+      for (const doc of documents) {
+        if (await canAddAnnotation(collection, doc._id, newAnnotation)) {
+          await collection.updateOne(
+            { _id: doc._id },
+            { $push: { annotations: newAnnotation } as any } // eslint-disable-line @typescript-eslint/no-explicit-any
+          );
+        } else {
+          console.warn(`Skipping document ${doc._id} due to size limit`);
+        }
+      }
+
+      skip += batchSize;
     }
 
     return NextResponse.json({
-      message: "Annotation added successfully to all conversations",
+      message: "Annotation added successfully to eligible documents",
     });
   } catch (error) {
     console.error("Error adding annotation:", error);
@@ -91,9 +110,7 @@ export async function POST(req: Request) {
   }
 }
 
-
-
-// remove 
+// DELETE API: Remove annotation with batching
 export async function DELETE(req: Request) {
   try {
     const { annotationId } = await req.json();
@@ -107,15 +124,28 @@ export async function DELETE(req: Request) {
     }
 
     const collection = await getCollection();
+    const batchSize = 100;
+    const annotationObjectId = new ObjectId(annotationId); // Convert annotationId to ObjectId
+    let hasMoreDocuments = true;
 
-    // Remove the annotation if the field exists
-    const result = await collection.updateMany(
-      { annotations: { $exists: true } },
-      { $pull: { annotations: { _id: new ObjectId(annotationId) } as any } } /* eslint-disable-line @typescript-eslint/no-explicit-any */
-    );
+    while (hasMoreDocuments) {
+      // Fetch all documents with the annotation in batches
+      const documents = await collection.find({ "annotations._id": annotationObjectId }).limit(batchSize).toArray();
 
-    if (result.modifiedCount === 0) {
-      return NextResponse.json({ error: "Annotation not found or already removed" }, { status: 404 });
+      if (documents.length === 0) {
+        hasMoreDocuments = false; // No more documents to process
+        break;
+      }
+
+      // Process each document in the batch
+      for (const doc of documents) {
+        const result = await collection.updateOne(
+          { _id: doc._id },
+          { $pull: { annotations: { _id: annotationObjectId } as any} } // eslint-disable-line @typescript-eslint/no-explicit-any
+        );
+
+        console.log(`Deleted annotation from document ${doc._id}: ${result.modifiedCount}`);
+      }
     }
 
     return NextResponse.json({ message: "Annotation deleted successfully" });
@@ -125,7 +155,8 @@ export async function DELETE(req: Request) {
   }
 }
 
-//update annotations
+
+// PATCH API: Update annotation with batching
 export async function PATCH(req: Request) {
   try {
     const { annotationId, updatedFields } = await req.json();
@@ -139,22 +170,37 @@ export async function PATCH(req: Request) {
     }
 
     const collection = await getCollection();
+    const batchSize = 100;
 
-    const result = await collection.updateMany(
-      { "annotations._id": new ObjectId(annotationId) },
-      {
-        $set: Object.entries(updatedFields).reduce(
-          (acc, [key, value]) => ({
-            ...acc,
-            [`annotations.$.${key}`]: value,
-          }),
-          {}
-        ),
+    let skip = 0;
+    let hasMoreDocuments = true;
+
+    while (hasMoreDocuments) {
+      const documents = await collection.find({ "annotations._id": new ObjectId(annotationId) }).skip(skip).limit(batchSize).toArray();
+
+      if (documents.length === 0) {
+        hasMoreDocuments = false;
+        break;
       }
-    );
 
-    if (result.modifiedCount === 0) {
-      return NextResponse.json({ error: "Annotation not found or not updated" }, { status: 404 });
+      for (const doc of documents) {
+        const result = await collection.updateOne(
+          { _id: doc._id, "annotations._id": new ObjectId(annotationId) },
+          {
+            $set: Object.entries(updatedFields).reduce(
+              (acc, [key, value]) => ({
+                ...acc,
+                [`annotations.$.${key}`]: value,
+              }),
+              {}
+            ),
+          }
+        );
+
+        console.log(`Updated annotation in document ${doc._id}: ${result.modifiedCount}`);
+      }
+
+      skip += batchSize;
     }
 
     return NextResponse.json({ message: "Annotation updated successfully" });
