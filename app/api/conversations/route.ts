@@ -46,28 +46,19 @@ export async function POST(req: Request) {
     const { annotation } = await req.json();
 
     if (!annotation || !annotation.title || !annotation.type) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     const collection = await getCollection();
-    const bulkOperations: { updateOne: { filter: { _id: ObjectId }, update: { $set: { annotations: any[] } } } }[] = []; /* eslint-disable-line @typescript-eslint/no-explicit-any */
-    const cursor = await collection.find();
+    await collection.updateMany(
+      { annotations: { $exists: false } }, 
+      { $set: { annotations: [] } }
+    );
 
-    await cursor.forEach((doc) => {
-      if (!Array.isArray(doc.annotations)) {
-        bulkOperations.push({
-          updateOne: {
-            filter: { _id: doc._id },
-            update: { $set: { annotations: [] } },
-          },
-        });
-      }
-    });
-
-    if (bulkOperations.length > 0) {
-      await collection.bulkWrite(bulkOperations);
-    }
-
+    // Create new annotation
     const newAnnotation = {
       _id: new ObjectId(),
       title: annotation.title,
@@ -77,18 +68,29 @@ export async function POST(req: Request) {
     };
 
     const result = await collection.updateMany(
-      {},
+      {}, // Apply to all documents
       { $push: { annotations: newAnnotation } as any } /* eslint-disable-line @typescript-eslint/no-explicit-any */
     );
+
+    if (result.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: "Failed to add annotation to any conversation" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       message: "Annotation added successfully to all conversations",
     });
   } catch (error) {
     console.error("Error adding annotation:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
+
 
 
 // remove 

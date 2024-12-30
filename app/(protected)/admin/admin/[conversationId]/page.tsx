@@ -76,13 +76,16 @@ export default function ConversationPage({
       .then(() => {
         setModalOpen(false);
         setNewAnnotation(null);
-        setConversation((prev: any) =>
-          prev
-            ? {
-                ...prev,
-                annotations: [...(prev.annotations || []), newAnnotation],
-              }
-            : null
+        setConversation(
+          (
+            prev: any /* eslint-disable-line @typescript-eslint/no-explicit-any */
+          ) =>
+            prev
+              ? {
+                  ...prev,
+                  annotations: [...(prev.annotations || []), newAnnotation],
+                }
+              : null
         );
         fetch(`/api/conversations/${conversationId}`)
           .then((res) => res.json())
