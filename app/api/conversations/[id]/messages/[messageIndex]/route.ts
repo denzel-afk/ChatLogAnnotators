@@ -24,6 +24,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
               type: annotation.type,
               options: annotation.options || [],
               answers: annotation.answers || null,
+              locality: true
             } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
           },
         }

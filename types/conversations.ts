@@ -10,6 +10,7 @@ export interface Message {
     type: string;
     options?: string[];
     answers: string[] | null;
+    locality: boolean;
   }
   
   export interface Conversation {

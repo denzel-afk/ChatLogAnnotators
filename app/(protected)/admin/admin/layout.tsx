@@ -46,6 +46,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
             person: chatlog.Person || "Unknown Person",
             messages: chatlog.messages || [],
             annotations: chatlog.annotations || [],
+            locality: chatlog.locality || false,
           }));
           setConversations(transformedData);
           setFilteredConversations(transformedData);

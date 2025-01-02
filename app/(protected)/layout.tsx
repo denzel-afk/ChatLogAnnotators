@@ -4,6 +4,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export const metadata: Metadata = {
   title: "Chat Log Annotators",
@@ -32,6 +34,7 @@ export default function RootLayout({
                 <ModeToggle />
               </div>
               {children}
+              <ToastContainer />
             </main>
           </SidebarProvider>
         </ThemeProvider>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Conversation, Annotation } from "@/types/conversations";
+import { toast } from "react-toastify";
 
 export default function ConversationPage({
   params,
@@ -30,18 +31,21 @@ export default function ConversationPage({
             setConversation(data);
           })
           .catch((error) => {
-            console.error("Error fetching conversation:", error);
+            toast.error("Error fetching conversation:", error);
             setError("Failed to load conversation");
           });
       })
       .catch((error) => {
-        console.error("Error resolving params:", error);
+        toast.error("Error resolving params:", error);
         setError("Invalid conversation ID");
       });
   }, [params]);
 
   const handleSaveAnswer = (annotationId: string, updatedAnswer: string[]) => {
     if (!conversationId) return;
+
+    toast.info("Saving answer...");
+
     fetch(`/api/conversations/${conversationId}`, {
       method: "PATCH",
       headers: {
@@ -60,6 +64,7 @@ export default function ConversationPage({
         return res.json();
       })
       .then(() => {
+        toast.success("Answer saved successfully");
         setConversation((prev) =>
           prev
             ? {
@@ -73,7 +78,9 @@ export default function ConversationPage({
             : null
         );
       })
-      .catch((err) => console.error("Error saving answer:", err));
+      .catch((err) => {
+        toast.error("Error saving answer:", err);
+      });
   };
 
   const handleSaveMessageAnnotation = (
@@ -81,6 +88,8 @@ export default function ConversationPage({
     updatedAnswer: string[]
   ) => {
     if (!conversationId || activeMessageIndex === null) return;
+    toast.info("Saving message annotation...");
+
     fetch(
       `/api/conversations/${conversationId}/messages/${activeMessageIndex}`,
       {
@@ -103,6 +112,7 @@ export default function ConversationPage({
         return res.json();
       })
       .then(() => {
+        toast.success("Message annotation saved successfully");
         setConversation((prev) =>
           prev
             ? {
@@ -123,7 +133,7 @@ export default function ConversationPage({
             : null
         );
       })
-      .catch((err) => console.error("Error saving message annotation:", err));
+      .catch((err) => toast.error("Error saving message annotation:", err));
   };
 
   if (error) {
