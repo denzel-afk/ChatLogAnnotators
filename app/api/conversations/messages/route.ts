@@ -90,7 +90,7 @@ export async function DELETE(req: Request) {
       skip += batchSize;
     }
     return NextResponse.json({
-      message: `Annotation removed successfully from all messages`,
+      message: `Annotation removed successfully in ${totalModified} documents`,
     });
   }catch (error) {
     console.error("Error removing annotation from all messages:", error);
