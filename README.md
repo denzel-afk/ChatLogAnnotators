@@ -336,6 +336,14 @@ After
 }
 ```
 
+<h2>Lib, types, and components</h2>
+
+1. All of the sidebars components are resides in the components, some of them us using the shadcn-ui, and some of them are customized by the creators, such as cue-card, conversation-sidebar, etc.
+
+2. Types will give you some interface that are used along the development, like the interface of annotations, interface of converssations, etc.
+
+3. Lib is the helper that creators used to connect the project with the Database on Azure, which is here MongoDB on CosmosDB.
+
 ### Things to Improve
 
 Eventhough, editors have used many components to be developed on, but on the admin and home page, there are still a lot of redundancy, such as Modals and Table, the next developers may give a look and make the code reusable in the future time.

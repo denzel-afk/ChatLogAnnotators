@@ -61,6 +61,7 @@ export default function ConversationPage({
       });
   }, [params]);
 
+  // admin adding annotation on conversation level handler
   const handleAddAnnotation = () => {
     if (!newAnnotation || !newAnnotation.title || !newAnnotation.type) {
       toast.error("Please fill in all fields.");
@@ -106,6 +107,7 @@ export default function ConversationPage({
       .finally(() => setLoading(false));
   };
 
+  // admin deleting annotation on conversation level handler
   const handleDeleteAnnotation = (annotationId: string) => {
     if (!conversationId || !annotationId) return;
 
@@ -136,6 +138,7 @@ export default function ConversationPage({
       .finally(() => setLoading(false));
   };
 
+  //admin editing annotation on conversation level handler
   const handleEditAnnotation = (
     annotationId: string,
     updatedFields: Partial<Annotation>
@@ -168,6 +171,7 @@ export default function ConversationPage({
       .finally(() => setLoading(false));
   };
 
+  // admin adding annotation on specific message level handler
   const handleAddMessageAnnotation = (messageIndex: number) => {
     if (
       !newAnnotation ||
@@ -216,6 +220,7 @@ export default function ConversationPage({
       .finally(() => setLoadingMessageIndex(null));
   };
 
+  // admin deleting annotation on specific message level handler
   const handleDeleteMessageAnnotation = (
     messageIndex: number,
     annotationId: string
@@ -251,6 +256,7 @@ export default function ConversationPage({
       .finally(() => setLoadingMessageIndex(null));
   };
 
+  // admin editing annotation on specific message level handler
   const handleEditMessageAnnotation = (
     messageIndex: number,
     annotationId: string,
@@ -303,6 +309,7 @@ export default function ConversationPage({
     );
   }
 
+  // admin adding annotation on all messages level handler
   const handleAddllMessageAnnotation = () => {
     if (
       !newAnnotation ||
@@ -350,6 +357,7 @@ export default function ConversationPage({
       .finally(() => setLoading(false));
   };
 
+  // admin deleting annotation on all messages level handler
   const handleDeletellMessageAnnotation = (annotationId: string) => {
     if (!conversationId || !annotationId) {
       toast.error("Missing required fields for deleting annotation");
@@ -382,6 +390,7 @@ export default function ConversationPage({
       .finally(() => setLoading(false));
   };
 
+  // admin editing annotation on all messages level handler
   const handleEditllMessageAnnotation = (
     updatedFields: Partial<Annotation>
   ) => {
