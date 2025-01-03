@@ -83,7 +83,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
   
 
 // Delete an annotation in a message
-export async function DELETE(req: Request, context: any) {
+export async function DELETE(req: Request, context: any) { /* eslint-disable-line @typescript-eslint/no-explicit-any */
   try {
     // Await context.params before accessing its properties
     const { id, commentId } = await req.json();

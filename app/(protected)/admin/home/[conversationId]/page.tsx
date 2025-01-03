@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Conversation, Annotation, Comment } from "@/types/conversations";
+import { Conversation, Annotation } from "@/types/conversations";
 import { toast } from "react-toastify";
-import { decode } from "punycode";
 
 export default function ConversationPage({
   params,

@@ -10,7 +10,9 @@ export default function ConversationPage({
   params: Promise<{ conversationId: string }>;
 }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const [error, setError] = useState<string | null>(null);
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [newAnnotation, setNewAnnotation] = useState<{
     _id?: string;
@@ -24,9 +26,6 @@ export default function ConversationPage({
   const [allMessages, setAllMessages] = useState<boolean>(false);
   const [deleteModal, setDeleteModal] = useState<boolean>(false);
   const [targetAnnotation, setTargetAnnotation] = useState<Annotation | null>(
-    null
-  );
-  const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(
     null
   );
   const [messageAnnotation, setMessageAnnotation] = useState<
