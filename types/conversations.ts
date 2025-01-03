@@ -2,7 +2,15 @@ export interface Message {
     role: string;
     content: string;
     annotations?: Annotation[]
+    comments?: Comment[]
   }
+
+export interface Comment {
+  _id: string;
+  name: string;
+  timestamp: number;
+  content: string;
+}
   
   export interface Annotation {
     _id: string;
@@ -10,7 +18,6 @@ export interface Message {
     type: string;
     options?: string[];
     answers: string[] | null;
-    locality: boolean;
   }
   
   export interface Conversation {

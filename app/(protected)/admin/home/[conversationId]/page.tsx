@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Conversation, Annotation } from "@/types/conversations";
+import { Conversation, Annotation, Comment } from "@/types/conversations";
 import { toast } from "react-toastify";
+import { decode } from "punycode";
 
 export default function ConversationPage({
   params,
@@ -16,6 +17,9 @@ export default function ConversationPage({
     null
   );
   const [messageAnnotation, setMessageAnnotation] = useState<Annotation[]>([]);
+  const [localCommentContent, setLocalCommentContent] = useState<
+    Record<number, string>
+  >({});
 
   useEffect(() => {
     params
@@ -43,8 +47,6 @@ export default function ConversationPage({
 
   const handleSaveAnswer = (annotationId: string, updatedAnswer: string[]) => {
     if (!conversationId) return;
-
-    toast.info("Saving answer...");
 
     fetch(`/api/conversations/${conversationId}`, {
       method: "PATCH",
@@ -88,7 +90,6 @@ export default function ConversationPage({
     updatedAnswer: string[]
   ) => {
     if (!conversationId || activeMessageIndex === null) return;
-    toast.info("Saving message annotation...");
 
     fetch(
       `/api/conversations/${conversationId}/messages/${activeMessageIndex}`,
@@ -134,6 +135,103 @@ export default function ConversationPage({
         );
       })
       .catch((err) => toast.error("Error saving message annotation:", err));
+  };
+
+  const handleAddComment = (messageIndex: number, commentContent: string) => {
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("username="))
+      ?.split("=")[1];
+
+    const username = cookieValue
+      ? decodeURIComponent(cookieValue)
+      : "Anonymous";
+
+    if (!conversationId || !commentContent) return;
+
+    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: conversationId,
+        comment: {
+          name: username,
+          timestamp: Date.now(),
+          content: commentContent,
+        },
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to add comment");
+        return res.json();
+      })
+      .then(() => {
+        toast.success("Comment added successfully");
+        setConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.map((message, index) =>
+                  index === messageIndex
+                    ? {
+                        ...message,
+                        comments: [
+                          ...(message.comments || []),
+                          {
+                            _id: new Date().toISOString(),
+                            name: username,
+                            timestamp: Date.now(),
+                            content: commentContent,
+                          },
+                        ],
+                      }
+                    : message
+                ),
+              }
+            : null
+        );
+      })
+      .catch((err) => toast.error("Error adding comment: " + err.message));
+  };
+
+  const handleDeleteComment = (messageIndex: number, commentId: string) => {
+    if (!conversationId || !commentId) return;
+
+    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: conversationId,
+        commentId,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to delete comment");
+        return res.json();
+      })
+      .then(() => {
+        toast.success("Comment deleted successfully");
+        setConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.map((message, index) =>
+                  index === messageIndex
+                    ? {
+                        ...message,
+                        comments: message.comments?.filter(
+                          (comment) => comment._id !== commentId
+                        ),
+                      }
+                    : message
+                ),
+              }
+            : null
+        );
+      })
+      .catch((err) => toast.error("Error deleting comment: " + err.message));
   };
 
   if (error) {
@@ -517,6 +615,58 @@ export default function ConversationPage({
                 </tbody>
               </table>
             )}
+            <div className="mt-2">
+              <h2 className="text-lg font-semibold text-foreground">
+                Comments
+              </h2>
+              <h4>Refresh after each comments addition</h4>
+              {message.comments?.map((comment) => (
+                <div
+                  key={comment._id}
+                  className="flex items-center justify-between space-x-2 p-2 bg-gray-700 rounded-md mb-2"
+                >
+                  <div>
+                    <p className="text-muted-foreground font-semibold">
+                      {comment.name}
+                    </p>
+                    <p className="text-muted-foreground">{comment.content}</p>
+                  </div>
+                  <button
+                    className="text-red-500 hover:text-red-600 transition duration-300"
+                    onClick={() => handleDeleteComment(index, comment._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+
+              <div className="flex items-center mt-4">
+                <input
+                  type="text"
+                  className="w-full p-2 border border-muted rounded-l-md bg-card text-card-foreground focus:outline-none"
+                  value={localCommentContent[index] || ""} // Local state per message
+                  onChange={(e) =>
+                    setLocalCommentContent((prev) => ({
+                      ...prev,
+                      [index]: e.target.value,
+                    }))
+                  }
+                  placeholder="Type your comment here..."
+                />
+                <button
+                  className="bg-blue-500 text-primary-foreground p-2 rounded-r-md hover:bg-primary-dark transition duration-300"
+                  onClick={() => {
+                    handleAddComment(index, localCommentContent[index] || "");
+                    setLocalCommentContent((prev) => ({
+                      ...prev,
+                      [index]: "",
+                    }));
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
           </div>
         ))}
       </div>

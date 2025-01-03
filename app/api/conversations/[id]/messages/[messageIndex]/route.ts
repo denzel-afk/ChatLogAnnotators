@@ -4,11 +4,11 @@ import { ObjectId } from "mongodb";
 
 // add a new annotaion to a message
 export async function POST(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
-    const { id, annotation } = await req.json();
-    const params = await context.params; // Await context.params
+    const { id, comment } = await req.json();
+    const params = await context.params; 
     const { messageIndex } = params;
   
-    if (!id || !annotation || messageIndex === undefined) {
+    if (!id || !comment || messageIndex === undefined) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
   
@@ -18,13 +18,11 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
         { _id: new ObjectId(id) },
         {
           $push: {
-            [`messages.${messageIndex}.annotations`]: {
+            [`messages.${messageIndex}.comments`]: {
               _id: new ObjectId(),
-              title: annotation.title,
-              type: annotation.type,
-              options: annotation.options || [],
-              answers: annotation.answers || null,
-              locality: true
+              name: comment.name,
+              timestamp : comment.timestamp,
+              content: comment.content,
             } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
           },
         }
@@ -53,8 +51,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
       const collection = await getCollection();
   
       const parsedMessageIndex = parseInt(messageIndex, 10);
-  
-      // Perform the update with arrayFilters
+
       const result = await collection.updateOne(
         {
           _id: new ObjectId(id),
@@ -86,34 +83,43 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
   
 
 // Delete an annotation in a message
-export async function DELETE(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
-    const { id, annotationId } = await req.json();
-    const params = await context.params; // Await context.params
+export async function DELETE(req: Request, context: any) {
+  try {
+    // Await context.params before accessing its properties
+    const { id, commentId } = await req.json();
+    const params = await context.params;
     const { messageIndex } = params;
-  
-    if (!id || !annotationId || messageIndex === undefined) {
+
+    // Validate the input
+    if (!id || !commentId || messageIndex === undefined) {
+      console.error("Invalid DELETE request:", { id, commentId, messageIndex });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-  
-    try {
-      const collection = await getCollection();
-      const result = await collection.updateOne(
-        { _id: new ObjectId(id) },
-        {
-          $pull: {
-            [`messages.${messageIndex}.annotations`]: { _id: new ObjectId(annotationId) } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
-          },
-        }
-      );
-  
-      if (result.modifiedCount === 0) {
-        return NextResponse.json({ error: "Failed to delete annotation" }, { status: 500 });
-      }
-  
-      return NextResponse.json({ message: "Annotation deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting annotation:", error);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    if (!ObjectId.isValid(id) || !ObjectId.isValid(commentId)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
+
+    const collection = await getCollection();
+
+    // Perform the delete operation
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $pull: {
+          [`messages.${messageIndex}.comments`]: { _id: new ObjectId(commentId) } as any , /* eslint-disable-line @typescript-eslint/no-explicit-any */
+        },
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      console.error("Failed to delete comment:", { id, commentId, messageIndex });
+      return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: "Comment deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-  
+}

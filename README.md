@@ -70,10 +70,6 @@ This will start the frontend development server on `http://localhost:3000`.
       <td><code>answers</code></td>
       <td>The selected or provided answer(s) for the annotation.</td>
     </tr>
-    <tr>
-      <td><code>locality</code></td>
-      <td>A boolean value indicating the scope of the annotation: <ul><li><code>true</code>: The annotation is specific to a message.</li><li><code>false</code>: The annotation applies to all messages in all conversations.</li></ul></td>
-    </tr>
   </tbody>
 </table>
 
@@ -87,14 +83,8 @@ This will start the frontend development server on `http://localhost:3000`.
 
 <h2>Annotation Levels</h2>
 <ul>
-  <li><strong>Conversation Level Annotations</strong><p>Applied at the bottom of the entire conversation.<br>These annotations are not tied to any specific message but rather to the conversation as a whole.<br><code>locality</code> is set to <code>false</code>.</p></li>
-  <li><strong>Message Level Annotations</strong><p>Applied to individual messages within a conversation.<br>These annotations are tied to the specific message they belong to.<br><code>locality</code> is set to <code>true</code> if it is only applied into one message, but it is set to be <code>false</code> if the message is set globally</p></li>
-</ul>
-
-<h2>Behavior of <code>locality</code></h2>
-<ul>
-  <li><code>true</code> (Message Level): The annotation is specific to a single message and will not affect other messages or the conversation as a whole.</li>
-  <li><code>false</code> (Conversation Level): The annotation applies globally to all messages within all conversations.</li>
+  <li><strong>Conversation Level Annotations</strong><p>Applied at the bottom of the entire conversation.<br>These annotations are not tied to any specific message but rather to the conversation as a whole.</p></li>
+  <li><strong>Message Level Annotations</strong><p>Applied to individual messages within a conversation.<br>These annotations are tied to the specific message they belong to and also applied to all messages in all conversations.</p></li>
 </ul>
 
 ```bash
@@ -215,15 +205,13 @@ After
 						"can not be determined"
 					],
 					"answers" : [ ],
-					"locality" : false
 				},
 				{
 					"_id" : ObjectId("6777717dbb08da1852fb8628"),
 					"title" : "remarks?",
 					"type" : "textbox",
 					"options" : [ ],
-					"answers" : [ ],
-					"locality" : true
+					"answers" : [ ]
 				}
 			]
 		},
@@ -248,8 +236,7 @@ After
 						"no",
 						"can not be determined"
 					],
-					"answers" : [ ],
-					"locality" : false
+					"answers" : [ ]
 				}
 			]
 		},
@@ -275,7 +262,6 @@ After
 						"can not be determined"
 					],
 					"answers" : [ ],
-					"locality" : false
 				}
 			]
 		},
@@ -300,8 +286,7 @@ After
 						"no",
 						"can not be determined"
 					],
-					"answers" : [ ],
-					"locality" : false
+					"answers" : [ ]
 				}
 			]
 		}
@@ -330,7 +315,6 @@ After
 				"Not Applicable"
 			],
 			"answers" : null,
-			"locality" : false
 		}
 	]
 }

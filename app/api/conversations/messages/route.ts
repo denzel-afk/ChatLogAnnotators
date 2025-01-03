@@ -18,7 +18,6 @@ export async function POST(req: Request) {
       type: annotation.type,
       options: annotation.options || [],
       answers: annotation.answers || null,
-      locality: false
     };
 
     const batchSize = 100; 
