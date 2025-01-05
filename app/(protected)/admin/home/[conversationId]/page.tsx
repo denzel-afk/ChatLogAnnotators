@@ -160,7 +160,7 @@ export default function ConversationPage({
         if (!res.ok) throw new Error("Failed to save message annotation");
         return res.json();
       })
-      .then((data) => {
+      .then(() => {
         toast.success("Message annotation saved successfully");
         setConversation((prev) =>
           prev

@@ -38,7 +38,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
     }
   }
   
-  export async function PATCH(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
+  export async function PATCH(req: Request /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     try {
       const { id, messageIndex, annotationId, updatedAnswer, name } = await req.json();
       if (!id || messageIndex === undefined || !annotationId || !updatedAnswer || !name) {
@@ -61,29 +61,25 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
         return NextResponse.json({ error: "Message not found" }, { status: 404 });
       }
   
-      // Cari index annotation
       const annotationIndex = message.annotations.findIndex(
-        (annotation: any) => annotation._id.equals(new ObjectId(annotationId))
+        (annotation: any) => annotation._id.equals(new ObjectId(annotationId)) /* eslint-disable-line @typescript-eslint/no-explicit-any */
       );
   
       if (annotationIndex === -1) {
         return NextResponse.json({ error: "Annotation not found" }, { status: 404 });
       }
-  
-      // Cari jawaban berdasarkan nama
+
       const existingAnswerIndex = message.annotations[annotationIndex].answers.findIndex(
-        (ans: any) => ans.name === name
+        (ans: any) => ans.name === name /* eslint-disable-line @typescript-eslint/no-explicit-any */
       );
   
       if (existingAnswerIndex !== -1) {
-        // Update jawaban yang sudah ada
         const updatePath = `messages.${messageIndex}.annotations.${annotationIndex}.answers.${existingAnswerIndex}.content`;
         await collection.updateOne(
           { _id: new ObjectId(id) },
           { $set: { [updatePath]: updatedAnswer } }
         );
       } else {
-        // Tambahkan jawaban baru
         const newAnswer = {
           _id: new ObjectId(),
           name,
