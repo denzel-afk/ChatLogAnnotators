@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";
 
-// add a new annotaion to a message
+// add a new annotation to a message
 export async function POST(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     const { id, comment } = await req.json();
     const params = await context.params; 
@@ -38,88 +38,68 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
     }
   }
   
-  export async function PATCH(req: Request, context: any) { /* eslint-disable-line @typescript-eslint/no-explicit-any */
-    const { id, annotationId, updatedFields } = await req.json();
-    const params = await context.params;
-    const { messageIndex } = params;
-  
-    if (!id || !annotationId || messageIndex === undefined || !updatedFields) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-  
+  export async function PATCH(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     try {
-      const collection = await getCollection();
-  
-      const parsedMessageIndex = parseInt(messageIndex, 10);
-
-      const result = await collection.updateOne(
-        {
-          _id: new ObjectId(id),
-        },
-        {
-          $set: Object.fromEntries(
-            Object.entries(updatedFields).map(([key, value]) => [
-              `messages.${parsedMessageIndex}.annotations.$[annotationField].${key}`,
-              value,
-            ])
-          ),
-        },
-        {
-          arrayFilters: [{ "annotationField._id": new ObjectId(annotationId) }],
-        }
-      );
-  
-      if (result.modifiedCount === 0) {
-        return NextResponse.json({ error: "Failed to update annotation" }, { status: 500 });
+      const { id, messageIndex, annotationId, updatedAnswer, name } = await req.json();
+      if (!id || messageIndex === undefined || !annotationId || !updatedAnswer || !name) {
+        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
   
-      return NextResponse.json({ message: "Annotation updated successfully" });
+      if (!ObjectId.isValid(id) || !ObjectId.isValid(annotationId)) {
+        return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+      }
+  
+      const collection = await getCollection();
+      const conversation = await collection.findOne({ _id: new ObjectId(id) });
+  
+      if (!conversation) {
+        return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      }
+  
+      const message = conversation.messages[messageIndex];
+      if (!message) {
+        return NextResponse.json({ error: "Message not found" }, { status: 404 });
+      }
+  
+      // Cari index annotation
+      const annotationIndex = message.annotations.findIndex(
+        (annotation: any) => annotation._id.equals(new ObjectId(annotationId))
+      );
+  
+      if (annotationIndex === -1) {
+        return NextResponse.json({ error: "Annotation not found" }, { status: 404 });
+      }
+  
+      // Cari jawaban berdasarkan nama
+      const existingAnswerIndex = message.annotations[annotationIndex].answers.findIndex(
+        (ans: any) => ans.name === name
+      );
+  
+      if (existingAnswerIndex !== -1) {
+        // Update jawaban yang sudah ada
+        const updatePath = `messages.${messageIndex}.annotations.${annotationIndex}.answers.${existingAnswerIndex}.content`;
+        await collection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { [updatePath]: updatedAnswer } }
+        );
+      } else {
+        // Tambahkan jawaban baru
+        const newAnswer = {
+          _id: new ObjectId(),
+          name,
+          timestamp: Date.now(),
+          content: updatedAnswer,
+        };
+        await collection.updateOne(
+          { _id: new ObjectId(id) },
+          { $push: { [`messages.${messageIndex}.annotations.${annotationIndex}.answers`]: newAnswer } as any } // eslint-disable-line @typescript-eslint/no-explicit-any
+        );
+      }
+  
+      return NextResponse.json({ message: "Answer updated successfully" });
     } catch (error) {
-      console.error("Error updating annotation:", error);
+      console.error("Error updating answer:", error);
       return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
   }
   
-  
-
-// Delete an annotation in a message
-export async function DELETE(req: Request, context: any) { /* eslint-disable-line @typescript-eslint/no-explicit-any */
-  try {
-    // Await context.params before accessing its properties
-    const { id, commentId } = await req.json();
-    const params = await context.params;
-    const { messageIndex } = params;
-
-    // Validate the input
-    if (!id || !commentId || messageIndex === undefined) {
-      console.error("Invalid DELETE request:", { id, commentId, messageIndex });
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    if (!ObjectId.isValid(id) || !ObjectId.isValid(commentId)) {
-      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
-    }
-
-    const collection = await getCollection();
-
-    // Perform the delete operation
-    const result = await collection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $pull: {
-          [`messages.${messageIndex}.comments`]: { _id: new ObjectId(commentId) } as any , /* eslint-disable-line @typescript-eslint/no-explicit-any */
-        },
-      }
-    );
-
-    if (result.modifiedCount === 0) {
-      console.error("Failed to delete comment:", { id, commentId, messageIndex });
-      return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: "Comment deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting comment:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}

@@ -19,8 +19,12 @@ export default function ConversationPage({
     title: string;
     type: string;
     options?: string[];
-    answers?: string[];
-    locality?: boolean;
+    answers?: {
+      _id: string;
+      name: string;
+      timestamp: number;
+      content: string[];
+    }[];
   } | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [allMessages, setAllMessages] = useState<boolean>(false);
@@ -348,7 +352,13 @@ export default function ConversationPage({
                       title: annotation.title || "",
                       type: annotation.type || "multiple choice",
                       options: annotation.options || [],
-                      answers: annotation.answers || [],
+                      answers:
+                        annotation.answers?.map((answer) => ({
+                          _id: answer._id,
+                          name: answer.name,
+                          timestamp: answer.timestamp,
+                          content: answer.content || [],
+                        })) || [],
                     });
                     setModalOpen(true);
                   }}
@@ -938,7 +948,13 @@ export default function ConversationPage({
                           title: annotation.title || "",
                           type: annotation.type || "multiple choice",
                           options: annotation.options || [],
-                          answers: annotation.answers || [],
+                          answers:
+                            annotation.answers?.map((answer) => ({
+                              _id: answer._id,
+                              name: answer.name,
+                              timestamp: answer.timestamp,
+                              content: answer.content || [],
+                            })) || [],
                         });
                         setAllMessages(true);
                       }}

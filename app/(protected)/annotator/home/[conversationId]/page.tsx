@@ -19,12 +19,6 @@ export default function ConversationPage({
   const [localCommentContent, setLocalCommentContent] = useState<
     Record<number, string>
   >({});
-  const cookieValue = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("username="))
-    ?.split("=")[1];
-
-  const username = cookieValue ? decodeURIComponent(cookieValue) : "Anonymous";
 
   useEffect(() => {
     params
@@ -50,35 +44,70 @@ export default function ConversationPage({
       });
   }, [params]);
 
-  const handleSaveAnswer = (annotationId: string, updatedAnswer: string[]) => {
+  const handleSaveAnswer = (annotationId: string, updatedContent: string[]) => {
     if (!conversationId) return;
+
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("username="))
+      ?.split("=")[1];
+    const username = cookieValue
+      ? decodeURIComponent(cookieValue)
+      : "Anonymous";
+
+    const payload = {
+      id: conversationId,
+      annotationId,
+      updatedAnswer: updatedContent,
+      name: username,
+    };
+
+    console.log("Payload being sent to server:", payload);
 
     fetch(`/api/conversations/${conversationId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        id: conversationId,
-        annotationId,
-        updatedFields: {
-          answers: updatedAnswer,
-        },
-      }),
+      body: JSON.stringify(payload),
     })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to save answer");
+        if (!res.ok) {
+          return res.json().then((err) => {
+            throw new Error(err.message || "Failed to save answer");
+          });
+        }
         return res.json();
       })
       .then(() => {
         toast.success("Answer saved successfully");
+
         setConversation((prev) =>
           prev
             ? {
                 ...prev,
                 annotations: prev.annotations?.map((annotation) =>
                   annotation._id === annotationId
-                    ? { ...annotation, answers: updatedAnswer }
+                    ? {
+                        ...annotation,
+                        answers: annotation.answers?.some(
+                          (ans) => ans.name === username
+                        )
+                          ? annotation.answers.map((ans) =>
+                              ans.name === username
+                                ? { ...ans, content: updatedContent }
+                                : ans
+                            )
+                          : [
+                              ...annotation.answers,
+                              {
+                                _id: new Date().toISOString(),
+                                name: username,
+                                timestamp: Date.now(),
+                                content: updatedContent,
+                              },
+                            ],
+                      }
                     : annotation
                 ),
               }
@@ -86,15 +115,36 @@ export default function ConversationPage({
         );
       })
       .catch((err) => {
-        toast.error("Error saving answer:", err);
+        console.error("Error saving answer:", err);
+        toast.error("Error saving answer: " + err.message);
       });
   };
 
   const handleSaveMessageAnnotation = (
     annotationId: string,
-    updatedAnswer: string[]
+    updatedContent: string[]
   ) => {
     if (!conversationId || activeMessageIndex === null) return;
+
+    // Fetch username from cookies
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("username="))
+      ?.split("=")[1];
+    const username = cookieValue
+      ? decodeURIComponent(cookieValue)
+      : "Anonymous";
+
+    // Payload untuk API
+    const payload = {
+      id: conversationId,
+      messageIndex: activeMessageIndex,
+      annotationId,
+      updatedAnswer: updatedContent,
+      name: username,
+    };
+
+    console.log("Payload being sent to server (Message Level):", payload);
 
     fetch(
       `/api/conversations/${conversationId}/messages/${activeMessageIndex}`,
@@ -103,21 +153,14 @@ export default function ConversationPage({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          id: conversationId,
-          messageIndex: activeMessageIndex,
-          annotationId,
-          updatedFields: {
-            answers: updatedAnswer,
-          },
-        }),
+        body: JSON.stringify(payload),
       }
     )
       .then((res) => {
         if (!res.ok) throw new Error("Failed to save message annotation");
         return res.json();
       })
-      .then(() => {
+      .then((data) => {
         toast.success("Message annotation saved successfully");
         setConversation((prev) =>
           prev
@@ -129,7 +172,26 @@ export default function ConversationPage({
                         ...message,
                         annotations: message.annotations?.map((annotation) =>
                           annotation._id === annotationId
-                            ? { ...annotation, answers: updatedAnswer }
+                            ? {
+                                ...annotation,
+                                answers: annotation.answers?.some(
+                                  (ans) => ans.name === username
+                                )
+                                  ? annotation.answers.map((ans) =>
+                                      ans.name === username
+                                        ? { ...ans, content: updatedContent }
+                                        : ans
+                                    )
+                                  : [
+                                      ...annotation.answers,
+                                      {
+                                        _id: new Date().toISOString(),
+                                        name: username,
+                                        timestamp: Date.now(),
+                                        content: updatedContent,
+                                      },
+                                    ],
+                              }
                             : annotation
                         ),
                       }
@@ -139,7 +201,10 @@ export default function ConversationPage({
             : null
         );
       })
-      .catch((err) => toast.error("Error saving message annotation:", err));
+      .catch((err) => {
+        console.error("Error saving message annotation:", err);
+        toast.error("Error saving message annotation: " + err.message);
+      });
   };
 
   const handleAddComment = (messageIndex: number, commentContent: string) => {
@@ -284,21 +349,67 @@ export default function ConversationPage({
                   {annotation.type === "textbox" && (
                     <textarea
                       className="w-full p-2 border border-muted rounded-md bg-card text-card-foreground resize-none"
-                      value={annotation.answers?.[0] || ""}
-                      onChange={(e) =>
+                      value={
+                        annotation.answers?.find(
+                          (ans) =>
+                            ans.name ===
+                            (document.cookie
+                              .split("; ")
+                              .find((row) => row.startsWith("username="))
+                              ?.split("=")[1] || "Anonymous")
+                        )?.content?.[0] || ""
+                      }
+                      onChange={(e) => {
+                        const username =
+                          document.cookie
+                            .split("; ")
+                            .find((row) => row.startsWith("username="))
+                            ?.split("=")[1] || "Anonymous";
+
                         setConversation((prev) =>
                           prev
                             ? {
                                 ...prev,
                                 annotations: prev.annotations?.map((a) =>
                                   a._id === annotation._id
-                                    ? { ...a, answers: [e.target.value] }
+                                    ? {
+                                        ...a,
+                                        answers: a.answers
+                                          ? a.answers.some(
+                                              (ans) => ans.name === username
+                                            )
+                                            ? a.answers.map((ans) =>
+                                                ans.name === username
+                                                  ? {
+                                                      ...ans,
+                                                      content: [e.target.value],
+                                                    }
+                                                  : ans
+                                              )
+                                            : [
+                                                ...a.answers,
+                                                {
+                                                  _id: new Date().toISOString(),
+                                                  name: username,
+                                                  timestamp: Date.now(),
+                                                  content: [e.target.value],
+                                                },
+                                              ]
+                                          : [
+                                              {
+                                                _id: new Date().toISOString(),
+                                                name: username,
+                                                timestamp: Date.now(),
+                                                content: [e.target.value],
+                                              },
+                                            ],
+                                      }
                                     : a
                                 ),
                               }
                             : null
-                        )
-                      }
+                        );
+                      }}
                       onBlur={(e) =>
                         handleSaveAnswer(annotation._id, [e.target.value])
                       }
@@ -318,21 +429,68 @@ export default function ConversationPage({
                           <input
                             type="radio"
                             name={annotation._id}
-                            checked={annotation.answers?.[0] === option}
-                            onChange={() =>
+                            checked={
+                              annotation.answers?.find(
+                                (ans) =>
+                                  ans.name ===
+                                  (document.cookie
+                                    .split("; ")
+                                    .find((row) => row.startsWith("username="))
+                                    ?.split("=")[1] || "Anonymous")
+                              )?.content?.[0] === option
+                            }
+                            onChange={() => {
+                              const username =
+                                document.cookie
+                                  .split("; ")
+                                  .find((row) => row.startsWith("username="))
+                                  ?.split("=")[1] || "Anonymous";
+
                               setConversation((prev) =>
                                 prev
                                   ? {
                                       ...prev,
                                       annotations: prev.annotations?.map((a) =>
                                         a._id === annotation._id
-                                          ? { ...a, answers: [option] }
+                                          ? {
+                                              ...a,
+                                              answers: a.answers
+                                                ? a.answers.some(
+                                                    (ans) =>
+                                                      ans.name === username
+                                                  )
+                                                  ? a.answers.map((ans) =>
+                                                      ans.name === username
+                                                        ? {
+                                                            ...ans,
+                                                            content: [option],
+                                                          }
+                                                        : ans
+                                                    )
+                                                  : [
+                                                      ...a.answers,
+                                                      {
+                                                        _id: new Date().toISOString(),
+                                                        name: username,
+                                                        timestamp: Date.now(),
+                                                        content: [option],
+                                                      },
+                                                    ]
+                                                : [
+                                                    {
+                                                      _id: new Date().toISOString(),
+                                                      name: username,
+                                                      timestamp: Date.now(),
+                                                      content: [option],
+                                                    },
+                                                  ],
+                                            }
                                           : a
                                       ),
                                     }
                                   : null
-                              )
-                            }
+                              );
+                            }}
                             onBlur={() =>
                               handleSaveAnswer(annotation._id, [option])
                             }
@@ -342,14 +500,33 @@ export default function ConversationPage({
                       ))}
                     </div>
                   )}
+
                   {annotation.type === "multiple answers" && (
                     <div className="flex flex-col">
                       {annotation.options?.map((option, index) => (
-                        <label key={index} className="flex space-x-2">
+                        <label
+                          key={index}
+                          className="flex items-center space-x-2"
+                        >
                           <input
                             type="checkbox"
-                            checked={annotation.answers?.includes(option)}
-                            onChange={(e) =>
+                            checked={annotation.answers
+                              ?.find(
+                                (ans) =>
+                                  ans.name ===
+                                  (document.cookie
+                                    .split("; ")
+                                    .find((row) => row.startsWith("username="))
+                                    ?.split("=")[1] || "Anonymous")
+                              )
+                              ?.content?.includes(option)}
+                            onChange={(e) => {
+                              const username =
+                                document.cookie
+                                  .split("; ")
+                                  .find((row) => row.startsWith("username="))
+                                  ?.split("=")[1] || "Anonymous";
+
                               setConversation((prev) =>
                                 prev
                                   ? {
@@ -358,34 +535,92 @@ export default function ConversationPage({
                                         a._id === annotation._id
                                           ? {
                                               ...a,
-                                              answers: e.target.checked
-                                                ? [...(a.answers || []), option]
-                                                : (a.answers || []).filter(
-                                                    (ans) => ans !== option
-                                                  ),
+                                              answers: a.answers
+                                                ? a.answers.some(
+                                                    (ans) =>
+                                                      ans.name === username
+                                                  )
+                                                  ? a.answers.map((ans) =>
+                                                      ans.name === username
+                                                        ? {
+                                                            ...ans,
+                                                            content: e.target
+                                                              .checked
+                                                              ? [
+                                                                  ...(ans.content ||
+                                                                    []),
+                                                                  option,
+                                                                ]
+                                                              : (
+                                                                  ans.content ||
+                                                                  []
+                                                                ).filter(
+                                                                  (opt) =>
+                                                                    opt !==
+                                                                    option
+                                                                ),
+                                                          }
+                                                        : ans
+                                                    )
+                                                  : [
+                                                      ...a.answers,
+                                                      {
+                                                        _id: new Date().toISOString(),
+                                                        name: username,
+                                                        timestamp: Date.now(),
+                                                        content: e.target
+                                                          .checked
+                                                          ? [option]
+                                                          : [],
+                                                      },
+                                                    ]
+                                                : [
+                                                    {
+                                                      _id: new Date().toISOString(),
+                                                      name: username,
+                                                      timestamp: Date.now(),
+                                                      content: e.target.checked
+                                                        ? [option]
+                                                        : [],
+                                                    },
+                                                  ],
                                             }
                                           : a
                                       ),
                                     }
                                   : null
-                              )
-                            }
-                            onBlur={(e) =>
+                              );
+                            }}
+                            onBlur={(e) => {
+                              const updatedContent =
+                                annotation.answers
+                                  ?.find(
+                                    (ans) =>
+                                      ans.name ===
+                                      (document.cookie
+                                        .split("; ")
+                                        .find((row) =>
+                                          row.startsWith("username=")
+                                        )
+                                        ?.split("=")[1] || "Anonymous")
+                                  )
+                                  ?.content?.filter(
+                                    (ansOpt) => ansOpt !== option
+                                  ) || [];
                               handleSaveAnswer(
                                 annotation._id,
                                 e.target.checked
-                                  ? [...(annotation.answers || []), option]
-                                  : (annotation.answers || []).filter(
-                                      (ans) => ans !== option
-                                    )
-                              )
-                            }
+                                  ? [...updatedContent, option]
+                                  : updatedContent
+                              );
+                            }}
                           />
                           <span>{option}</span>
                         </label>
                       ))}
                     </div>
                   )}
+
                   {annotation.type === "scaler" && (
                     <div className="flex items-center space-x-4">
                       <input
@@ -395,28 +630,81 @@ export default function ConversationPage({
                         max={annotation.options?.[1] || "10"}
                         step={annotation.options?.[2] || "1"}
                         value={
-                          annotation.answers?.[0] || annotation.options?.[0]
+                          annotation.answers?.find(
+                            (ans) =>
+                              ans.name ===
+                              (document.cookie
+                                .split("; ")
+                                .find((row) => row.startsWith("username="))
+                                ?.split("=")[1] || "Anonymous")
+                          )?.content?.[0] || annotation.options?.[0]
                         }
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const username =
+                            document.cookie
+                              .split("; ")
+                              .find((row) => row.startsWith("username="))
+                              ?.split("=")[1] || "Anonymous";
+
                           setConversation((prev) =>
                             prev
                               ? {
                                   ...prev,
                                   annotations: prev.annotations?.map((a) =>
                                     a._id === annotation._id
-                                      ? { ...a, answers: [e.target.value] }
+                                      ? {
+                                          ...a,
+                                          answers: a.answers
+                                            ? a.answers.some(
+                                                (ans) => ans.name === username
+                                              )
+                                              ? a.answers.map((ans) =>
+                                                  ans.name === username
+                                                    ? {
+                                                        ...ans,
+                                                        content: [
+                                                          e.target.value,
+                                                        ],
+                                                      }
+                                                    : ans
+                                                )
+                                              : [
+                                                  ...a.answers,
+                                                  {
+                                                    _id: new Date().toISOString(),
+                                                    name: username,
+                                                    timestamp: Date.now(),
+                                                    content: [e.target.value],
+                                                  },
+                                                ]
+                                            : [
+                                                {
+                                                  _id: new Date().toISOString(),
+                                                  name: username,
+                                                  timestamp: Date.now(),
+                                                  content: [e.target.value],
+                                                },
+                                              ],
+                                        }
                                       : a
                                   ),
                                 }
                               : null
-                          )
-                        }
+                          );
+                        }}
                         onBlur={(e) =>
                           handleSaveAnswer(annotation._id, [e.target.value])
                         }
                       />
                       <span className="text-foreground font-semibold">
-                        {annotation.answers?.[0] || annotation.options?.[0]}
+                        {annotation.answers?.find(
+                          (ans) =>
+                            ans.name ===
+                            (document.cookie
+                              .split("; ")
+                              .find((row) => row.startsWith("username="))
+                              ?.split("=")[1] || "Anonymous")
+                        )?.content?.[0] || annotation.options?.[0]}
                       </span>
                     </div>
                   )}
@@ -486,16 +774,62 @@ export default function ConversationPage({
                         {annotation.type === "textbox" && (
                           <textarea
                             className="w-full p-2 border border-muted rounded-md bg-card text-card-foreground resize-none"
-                            value={annotation.answers?.[0] || ""}
-                            onChange={(e) =>
+                            value={
+                              annotation.answers?.find(
+                                (ans) =>
+                                  ans.name ===
+                                  (document.cookie
+                                    .split("; ")
+                                    .find((row) => row.startsWith("username="))
+                                    ?.split("=")[1] || "Anonymous")
+                              )?.content?.[0] || ""
+                            }
+                            onChange={(e) => {
+                              const username =
+                                document.cookie
+                                  .split("; ")
+                                  .find((row) => row.startsWith("username="))
+                                  ?.split("=")[1] || "Anonymous";
+
                               setMessageAnnotation((prev) =>
                                 prev.map((a) =>
                                   a._id === annotation._id
-                                    ? { ...a, answers: [e.target.value] }
+                                    ? {
+                                        ...a,
+                                        answers: a.answers
+                                          ? a.answers.some(
+                                              (ans) => ans.name === username
+                                            )
+                                            ? a.answers.map((ans) =>
+                                                ans.name === username
+                                                  ? {
+                                                      ...ans,
+                                                      content: [e.target.value],
+                                                    }
+                                                  : ans
+                                              )
+                                            : [
+                                                ...a.answers,
+                                                {
+                                                  _id: new Date().toISOString(),
+                                                  name: username,
+                                                  timestamp: Date.now(),
+                                                  content: [e.target.value],
+                                                },
+                                              ]
+                                          : [
+                                              {
+                                                _id: new Date().toISOString(),
+                                                name: username,
+                                                timestamp: Date.now(),
+                                                content: [e.target.value],
+                                              },
+                                            ],
+                                      }
                                     : a
                                 )
-                              )
-                            }
+                              );
+                            }}
                             onBlur={(e) =>
                               handleSaveMessageAnnotation(annotation._id, [
                                 e.target.value,
@@ -517,16 +851,67 @@ export default function ConversationPage({
                                 <input
                                   type="radio"
                                   name={annotation._id}
-                                  checked={annotation.answers?.[0] === option}
-                                  onChange={() =>
+                                  checked={
+                                    annotation.answers?.find(
+                                      (ans) =>
+                                        ans.name ===
+                                        (document.cookie
+                                          .split("; ")
+                                          .find((row) =>
+                                            row.startsWith("username=")
+                                          )
+                                          ?.split("=")[1] || "Anonymous")
+                                    )?.content?.[0] === option
+                                  }
+                                  onChange={() => {
+                                    const username =
+                                      document.cookie
+                                        .split("; ")
+                                        .find((row) =>
+                                          row.startsWith("username=")
+                                        )
+                                        ?.split("=")[1] || "Anonymous";
+
                                     setMessageAnnotation((prev) =>
                                       prev.map((a) =>
                                         a._id === annotation._id
-                                          ? { ...a, answers: [option] }
+                                          ? {
+                                              ...a,
+                                              answers: a.answers
+                                                ? a.answers.some(
+                                                    (ans) =>
+                                                      ans.name === username
+                                                  )
+                                                  ? a.answers.map((ans) =>
+                                                      ans.name === username
+                                                        ? {
+                                                            ...ans,
+                                                            content: [option],
+                                                          }
+                                                        : ans
+                                                    )
+                                                  : [
+                                                      ...a.answers,
+                                                      {
+                                                        _id: new Date().toISOString(),
+                                                        name: username,
+                                                        timestamp: Date.now(),
+                                                        content: [option],
+                                                      },
+                                                    ]
+                                                : [
+                                                    {
+                                                      _id: new Date().toISOString(),
+                                                      name: username,
+                                                      timestamp: Date.now(),
+                                                      content: [option],
+                                                    },
+                                                  ],
+                                            }
                                           : a
                                       )
-                                    )
-                                  }
+                                    );
+                                  }}
                                   onBlur={() =>
                                     handleSaveMessageAnnotation(
                                       annotation._id,
@@ -539,48 +924,138 @@ export default function ConversationPage({
                             ))}
                           </div>
                         )}
+
                         {annotation.type === "multiple answers" && (
                           <div className="flex flex-col">
                             {annotation.options?.map((option, idx) => (
-                              <label key={idx} className="flex space-x-2">
+                              <label
+                                key={idx}
+                                className="flex items-center space-x-2"
+                              >
                                 <input
                                   type="checkbox"
-                                  checked={annotation.answers?.includes(option)}
-                                  onChange={(e) =>
+                                  checked={
+                                    annotation.answers
+                                      ?.find(
+                                        (ans) =>
+                                          ans.name ===
+                                          (document.cookie
+                                            .split("; ")
+                                            .find((row) =>
+                                              row.startsWith("username=")
+                                            )
+                                            ?.split("=")[1] || "Anonymous")
+                                      )
+                                      ?.content?.includes(option) || false
+                                  }
+                                  onChange={(e) => {
+                                    const username =
+                                      document.cookie
+                                        .split("; ")
+                                        .find((row) =>
+                                          row.startsWith("username=")
+                                        )
+                                        ?.split("=")[1] || "Anonymous";
+
                                     setMessageAnnotation((prev) =>
                                       prev.map((a) =>
                                         a._id === annotation._id
                                           ? {
                                               ...a,
-                                              answers: e.target.checked
-                                                ? [...(a.answers || []), option]
-                                                : (a.answers || []).filter(
-                                                    (ans) => ans !== option
-                                                  ),
+                                              answers: a.answers
+                                                ? a.answers.some(
+                                                    (ans) =>
+                                                      ans.name === username
+                                                  )
+                                                  ? a.answers.map((ans) =>
+                                                      ans.name === username
+                                                        ? {
+                                                            ...ans,
+                                                            content: e.target
+                                                              .checked
+                                                              ? [
+                                                                  ...(ans.content ||
+                                                                    []),
+                                                                  option,
+                                                                ]
+                                                              : (
+                                                                  ans.content ||
+                                                                  []
+                                                                ).filter(
+                                                                  (ansOpt) =>
+                                                                    ansOpt !==
+                                                                    option
+                                                                ),
+                                                          }
+                                                        : ans
+                                                    )
+                                                  : [
+                                                      ...a.answers,
+                                                      {
+                                                        _id: new Date().toISOString(),
+                                                        name: username,
+                                                        timestamp: Date.now(),
+                                                        content: e.target
+                                                          .checked
+                                                          ? [option]
+                                                          : [],
+                                                      },
+                                                    ]
+                                                : [
+                                                    {
+                                                      _id: new Date().toISOString(),
+                                                      name: username,
+                                                      timestamp: Date.now(),
+                                                      content: e.target.checked
+                                                        ? [option]
+                                                        : [],
+                                                    },
+                                                  ],
                                             }
                                           : a
                                       )
-                                    )
-                                  }
-                                  onBlur={(e) =>
+                                    );
+                                  }}
+                                  onBlur={(e) => {
+                                    const updatedContent = e.target.checked
+                                      ? [
+                                          ...(annotation.answers?.find(
+                                            (ans) =>
+                                              ans.name ===
+                                              (document.cookie
+                                                .split("; ")
+                                                .find((row) =>
+                                                  row.startsWith("username=")
+                                                )
+                                                ?.split("=")[1] || "Anonymous")
+                                          )?.content || []),
+                                          option,
+                                        ]
+                                      : (
+                                          annotation.answers?.find(
+                                            (ans) =>
+                                              ans.name ===
+                                              (document.cookie
+                                                .split("; ")
+                                                .find((row) =>
+                                                  row.startsWith("username=")
+                                                )
+                                                ?.split("=")[1] || "Anonymous")
+                                          )?.content || []
+                                        ).filter((ansOpt) => ansOpt !== option);
+
                                     handleSaveMessageAnnotation(
                                       annotation._id,
-                                      e.target.checked
-                                        ? [
-                                            ...(annotation.answers || []),
-                                            option,
-                                          ]
-                                        : (annotation.answers || []).filter(
-                                            (ans) => ans !== option
-                                          )
-                                    )
-                                  }
+                                      updatedContent
+                                    );
+                                  }}
                                 />
                                 <span>{option}</span>
                               </label>
                             ))}
                           </div>
                         )}
+
                         {annotation.type === "scaler" && (
                           <div className="flex items-center space-x-4">
                             <input
@@ -590,18 +1065,65 @@ export default function ConversationPage({
                               max={annotation.options?.[1] || "10"}
                               step={annotation.options?.[2] || "1"}
                               value={
-                                annotation.answers?.[0] ||
-                                annotation.options?.[0]
+                                annotation.answers?.find(
+                                  (ans) =>
+                                    ans.name ===
+                                    (document.cookie
+                                      .split("; ")
+                                      .find((row) =>
+                                        row.startsWith("username=")
+                                      )
+                                      ?.split("=")[1] || "Anonymous")
+                                )?.content?.[0] || annotation.options?.[0]
                               }
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const username =
+                                  document.cookie
+                                    .split("; ")
+                                    .find((row) => row.startsWith("username="))
+                                    ?.split("=")[1] || "Anonymous";
+
                                 setMessageAnnotation((prev) =>
                                   prev.map((a) =>
                                     a._id === annotation._id
-                                      ? { ...a, answers: [e.target.value] }
+                                      ? {
+                                          ...a,
+                                          answers: a.answers
+                                            ? a.answers.some(
+                                                (ans) => ans.name === username
+                                              )
+                                              ? a.answers.map((ans) =>
+                                                  ans.name === username
+                                                    ? {
+                                                        ...ans,
+                                                        content: [
+                                                          e.target.value,
+                                                        ],
+                                                      }
+                                                    : ans
+                                                )
+                                              : [
+                                                  ...a.answers,
+                                                  {
+                                                    _id: new Date().toISOString(),
+                                                    name: username,
+                                                    timestamp: Date.now(),
+                                                    content: [e.target.value],
+                                                  },
+                                                ]
+                                            : [
+                                                {
+                                                  _id: new Date().toISOString(),
+                                                  name: username,
+                                                  timestamp: Date.now(),
+                                                  content: [e.target.value],
+                                                },
+                                              ],
+                                        }
                                       : a
                                   )
-                                )
-                              }
+                                );
+                              }}
                               onBlur={(e) =>
                                 handleSaveMessageAnnotation(annotation._id, [
                                   e.target.value,
@@ -609,8 +1131,14 @@ export default function ConversationPage({
                               }
                             />
                             <span className="text-foreground font-semibold">
-                              {annotation.answers?.[0] ||
-                                annotation.options?.[0]}
+                              {annotation.answers?.find(
+                                (ans) =>
+                                  ans.name ===
+                                  (document.cookie
+                                    .split("; ")
+                                    .find((row) => row.startsWith("username="))
+                                    ?.split("=")[1] || "Anonymous")
+                              )?.content?.[0] || annotation.options?.[0]}
                             </span>
                           </div>
                         )}
@@ -625,27 +1153,25 @@ export default function ConversationPage({
                 Comments
               </h2>
               <h4>Refresh after each comments addition</h4>
-              {message.comments
-                ?.filter((comment) => comment.name === username)
-                .map((comment) => (
-                  <div
-                    key={comment._id}
-                    className="flex items-center justify-between space-x-2 p-2 bg-gray-700 rounded-md mb-2"
-                  >
-                    <div>
-                      <p className="text-muted-foreground font-semibold">
-                        {comment.name}
-                      </p>
-                      <p className="text-muted-foreground">{comment.content}</p>
-                    </div>
-                    <button
-                      className="text-red-500 hover:text-red-600 transition duration-300"
-                      onClick={() => handleDeleteComment(index, comment._id)}
-                    >
-                      Delete
-                    </button>
+              {message.comments?.map((comment) => (
+                <div
+                  key={comment._id}
+                  className="flex items-center justify-between space-x-2 p-2 bg-gray-700 rounded-md mb-2"
+                >
+                  <div>
+                    <p className="text-muted-foreground font-semibold">
+                      {comment.name}
+                    </p>
+                    <p className="text-muted-foreground">{comment.content}</p>
                   </div>
-                ))}
+                  <button
+                    className="text-red-500 hover:text-red-600 transition duration-300"
+                    onClick={() => handleDeleteComment(index, comment._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
 
               <div className="flex items-center mt-4">
                 <input
