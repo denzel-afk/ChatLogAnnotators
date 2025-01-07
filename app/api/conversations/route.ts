@@ -30,15 +30,27 @@ export async function GET(req: Request) {
       };
     }
 
-    const documents = await collection.find(filter).toArray();
+    const documents = await collection
+  .find(filter, {
+    projection: {
+      person: 1,
+      stime: 1,
+      last_interact: 1,
+      messages: 1,
+      annotations: 1,
+    },
+  })
+  .toArray();
 
-    const conversations = documents.map((doc) => ({
-      _id: doc._id.toString(),
-      Person: doc.person || "Unknown",
-      firstInteraction: doc.stime?.text || "No start time",
-      lastInteraction: doc.last_interact?.text || "No last interaction",
-      messages: doc.messages || [],
-    }));
+
+  const conversations = documents.map((doc) => ({
+    _id: doc._id.toString(),
+    Person: doc.person ?? "Unknown",
+    firstInteraction: doc.stime?.text || "No start time",
+    lastInteraction: doc.last_interact?.text || "No last interaction",
+    messages: doc.messages || [],
+    annotations: doc.annotations || [],
+  }));
 
     if (conversations.length === 0) {
       return NextResponse.json({ message: "No conversations found" }, { status: 404 });

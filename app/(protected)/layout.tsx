@@ -14,12 +14,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-primary text-foreground flex flex-row ">
+      <body className="bg-primary text-foreground h-screen overflow-hidden">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -27,15 +27,17 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            <AppSidebar />
-            <main>
-              <div className="flex flex-row sticky top-0 z-10 bg-background p-1 justify-between">
-                <SidebarTrigger />
-                <ModeToggle />
-              </div>
-              {children}
-              <ToastContainer />
-            </main>
+            <div className="flex h-full">
+              <AppSidebar />
+              <main className="flex-1 overflow-auto">
+                <div className="sticky top-0 z-10 bg-background p-1 flex justify-between">
+                  <SidebarTrigger />
+                  <ModeToggle />
+                </div>
+                {children}
+                <ToastContainer />
+              </main>
+            </div>
           </SidebarProvider>
         </ThemeProvider>
       </body>

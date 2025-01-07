@@ -41,6 +41,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
   export async function PATCH(req: Request /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     try {
       const { id, messageIndex, annotationId, updatedAnswer, name } = await req.json();
+  
       if (!id || messageIndex === undefined || !annotationId || !updatedAnswer || !name) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
@@ -68,7 +69,7 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
       if (annotationIndex === -1) {
         return NextResponse.json({ error: "Annotation not found" }, { status: 404 });
       }
-
+  
       const existingAnswerIndex = message.annotations[annotationIndex].answers.findIndex(
         (ans: any) => ans.name === name /* eslint-disable-line @typescript-eslint/no-explicit-any */
       );
@@ -77,15 +78,16 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
         const updatePath = `messages.${messageIndex}.annotations.${annotationIndex}.answers.${existingAnswerIndex}.content`;
         await collection.updateOne(
           { _id: new ObjectId(id) },
-          { $set: { [updatePath]: updatedAnswer } }
+          { $set: { [updatePath]: Array.from(new Set(updatedAnswer)) } }
         );
       } else {
         const newAnswer = {
           _id: new ObjectId(),
           name,
           timestamp: Date.now(),
-          content: updatedAnswer,
+          content: Array.from(new Set(updatedAnswer)),
         };
+  
         await collection.updateOne(
           { _id: new ObjectId(id) },
           { $push: { [`messages.${messageIndex}.annotations.${annotationIndex}.answers`]: newAnswer } as any } // eslint-disable-line @typescript-eslint/no-explicit-any

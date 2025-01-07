@@ -126,7 +126,6 @@ export default function ConversationPage({
   ) => {
     if (!conversationId || activeMessageIndex === null) return;
 
-    // Fetch username from cookies
     const cookieValue = document.cookie
       .split("; ")
       .find((row) => row.startsWith("username="))
@@ -135,7 +134,6 @@ export default function ConversationPage({
       ? decodeURIComponent(cookieValue)
       : "Anonymous";
 
-    // Payload untuk API
     const payload = {
       id: conversationId,
       messageIndex: activeMessageIndex,
@@ -973,11 +971,15 @@ export default function ConversationPage({
                                                             ...ans,
                                                             content: e.target
                                                               .checked
-                                                              ? [
-                                                                  ...(ans.content ||
-                                                                    []),
-                                                                  option,
-                                                                ]
+                                                              ? ans.content?.includes(
+                                                                  option
+                                                                )
+                                                                ? ans.content
+                                                                : [
+                                                                    ...(ans.content ||
+                                                                      []),
+                                                                    option,
+                                                                  ]
                                                               : (
                                                                   ans.content ||
                                                                   []
@@ -1153,31 +1155,44 @@ export default function ConversationPage({
                 Comments
               </h2>
               <h4>Refresh after each comments addition</h4>
-              {message.comments?.map((comment) => (
-                <div
-                  key={comment._id}
-                  className="flex items-center justify-between space-x-2 p-2 bg-gray-700 rounded-md mb-2"
-                >
-                  <div>
-                    <p className="text-muted-foreground font-semibold">
-                      {comment.name}
-                    </p>
-                    <p className="text-muted-foreground">{comment.content}</p>
-                  </div>
-                  <button
-                    className="text-red-500 hover:text-red-600 transition duration-300"
-                    onClick={() => handleDeleteComment(index, comment._id)}
+              {message.comments
+                ?.filter((comment) => {
+                  const cookieValue = document.cookie
+                    .split("; ")
+                    .find((row) => row.startsWith("username="))
+                    ?.split("=")[1];
+                  const username = cookieValue
+                    ? decodeURIComponent(cookieValue)
+                    : "Anonymous";
+                  return comment.name === username;
+                })
+                .map((comment) => (
+                  <div
+                    key={comment._id}
+                    className="flex justify-between items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md mb-4"
                   >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {comment.name}
+                      </p>
+                      <p className="mt-1 text-gray-800 dark:text-gray-300">
+                        {comment.content}
+                      </p>
+                    </div>
+                    <button
+                      className="text-red-500 hover:text-red-600 transition duration-300 font-medium"
+                      onClick={() => handleDeleteComment(index, comment._id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
 
               <div className="flex items-center mt-4">
                 <input
                   type="text"
                   className="w-full p-2 border border-muted rounded-l-md bg-card text-card-foreground focus:outline-none"
-                  value={localCommentContent[index] || ""} // Local state per message
+                  value={localCommentContent[index] || ""}
                   onChange={(e) =>
                     setLocalCommentContent((prev) => ({
                       ...prev,
