@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 
 export default function AdminPage() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  /* eslint-disable @typescript-eslint/no-unused-vars */
   const [newAnnotation, setNewAnnotation] = useState<{
     _id?: string;
     title: string;

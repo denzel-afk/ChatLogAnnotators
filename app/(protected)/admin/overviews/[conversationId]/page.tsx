@@ -1,8 +1,7 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
-import { Conversation, Annotation, Message } from "@/types/conversations";
-import { ActivitySquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Conversation, Annotation } from "@/types/conversations";
 
 export default function SummaryPage({
   params,
