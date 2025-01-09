@@ -27,7 +27,11 @@ export default function AdminPage() {
   const [messageAnnotation, setMessageAnnotation] = useState<
     Annotation[] | null
   >(null);
+  const [uri, setUri] = useState("");
+  const [databaseId, setDatabaseId] = useState("");
+  const [containerId, setContainerId] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [databaseName, setDatabaseName] = useState("");
   const fetchFirstConversation = async () => {
     try {
       const response = await fetch(`/api/conversations`);
@@ -267,9 +271,114 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   };
 
+  // adding database point
+  const handleAddDatabase = async () => {
+    try {
+      const response = await fetch("/api/admin/databases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uri,
+          databaseId,
+          containerId,
+          name: databaseName,
+        }),
+      });
+      const result = await response.json();
+      console.log("API Response:", result);
+
+      if (!response.ok) {
+        toast.error(`Error: ${result.error}`);
+        return;
+      }
+
+      toast.success("Database added successfully");
+      setUri("");
+      setDatabaseId("");
+      setContainerId("");
+      setDatabaseName("");
+    } catch (error) {
+      console.error("Error adding database:", error);
+      toast.error("Internal Server Error");
+    }
+  };
+
   return (
     <div className="p-4 bg-background text-foreground h-full overflow-auto">
       <h1 className="text-xl font-bold pb-4">Admin: Manage Annotations</h1>
+      <div className="bg-secondary rounded-md p-6 shadow-md">
+        <h2 className="text-xl font-bold mb-6 text-">Add a New Database</h2>
+        <div className="mb-4">
+          <label
+            htmlFor="databaseUri"
+            className="block text-sm font-medium text-foreground mb-2"
+          >
+            Database URI
+          </label>
+          <input
+            id="databaseUri"
+            type="text"
+            placeholder="Enter the database URI"
+            value={uri}
+            onChange={(e) => setUri(e.target.value)}
+            className="border border-muted focus:ring-primary focus:border-primary rounded-md w-full p-3 text-foreground"
+          />
+        </div>
+        <div className="mb-4">
+          <label
+            htmlFor="databaseId"
+            className="block text-sm font-medium text-foreground mb-2"
+          >
+            Database ID
+          </label>
+          <input
+            id="databaseId"
+            type="text"
+            placeholder="Enter the database ID"
+            value={databaseId}
+            onChange={(e) => setDatabaseId(e.target.value)}
+            className="border border-muted focus:ring-primary focus:border-primary rounded-md w-full p-3 text-foreground"
+          />
+        </div>
+        <div className="mb-4">
+          <label
+            htmlFor="containerId"
+            className="block text-sm font-medium text-foreground mb-2"
+          >
+            Container ID
+          </label>
+          <input
+            id="containerId"
+            type="text"
+            placeholder="Enter the container ID"
+            value={containerId}
+            onChange={(e) => setContainerId(e.target.value)}
+            className="border border-muted focus:ring-primary focus:border-primary rounded-md w-full p-3 text-foreground"
+          />
+        </div>
+        <div className="mb-4">
+          <label
+            htmlFor="databaseName"
+            className="block text-sm font-medium text-foreground mb-2"
+          >
+            Database Name
+          </label>
+          <input
+            id="databaseName"
+            type="text"
+            placeholder="Enter the database name (display name)"
+            value={databaseName}
+            onChange={(e) => setDatabaseName(e.target.value)}
+            className="border border-muted focus:ring-primary focus:border-primary rounded-md w-full p-3 text-foreground"
+          />
+        </div>
+        <button
+          className="w-full px-4 py-2 bg-primary text-white rounded-md shadow-md hover:bg-destructive-foreground hover:text-primary focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
+          onClick={handleAddDatabase}
+        >
+          Add Database
+        </button>
+      </div>
       <h2 className="text-lg font-semibold mb-4">Conversation Annotation</h2>
       <table className="w-full mt-4 border">
         <thead className="bg-secondary text-secondary-foreground">
