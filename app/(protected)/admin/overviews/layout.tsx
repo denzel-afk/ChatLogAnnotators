@@ -94,7 +94,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         </div>
         <ConversationSidebar
           conversations={filteredConversations}
-          onConversationSelect={(id) => router.push(`/admin/home/${id}`)}
+          onConversationSelect={(id) => router.push(`/admin/overviews/${id}`)}
         />
       </div>
       <div className="flex-1 overflow-auto bg-background text-foreground">
