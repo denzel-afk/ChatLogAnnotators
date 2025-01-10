@@ -7,7 +7,7 @@ import { Conversation } from "@/types/conversations";
 import { useDatabase } from "@/app/(protected)/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -34,6 +34,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
 
         if (Array.isArray(data)) {
           // Transform data for conversations
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
             title: chatlog.title || "Untitled",

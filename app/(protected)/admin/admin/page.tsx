@@ -41,6 +41,7 @@ export default function AdminPage() {
         const chatlog = data[0];
         const conversationData = {
           _id: chatlog._id || "unknown_id",
+          title: chatlog.title || "Untitled",
           stime: {
             text: chatlog.stime?.text || "Unknown Start Time",
             timestamp: chatlog.stime?.timestamp || 0,
@@ -140,7 +141,7 @@ export default function AdminPage() {
     annotationId: string,
     updatedFields: Partial<Annotation>
   ) => {
-    if (annotationId) {
+    if (!annotationId) {
       console.error("Missing required fields for editing annotation");
       return;
     }

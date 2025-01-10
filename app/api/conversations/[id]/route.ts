@@ -27,10 +27,8 @@ export async function PATCH(req: Request) {
     const { id, annotationId, updatedAnswer, name } = await req.json();
 
     if (!id || !annotationId || !updatedAnswer || !name) {
-      console.error("Missing fields:", { id, annotationId, updatedAnswer, name });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-    
 
     if (!ObjectId.isValid(id) || !ObjectId.isValid(annotationId)) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
@@ -43,35 +41,46 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }
 
+    // Find the annotation by ID
     const annotationIndex = conversation.annotations.findIndex(
-      (annotation: any) => annotation._id.equals(new ObjectId(annotationId)) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+      (annotation: any) => annotation._id.equals(new ObjectId(annotationId))
     );
 
     if (annotationIndex === -1) {
       return NextResponse.json({ error: "Annotation not found" }, { status: 404 });
     }
 
-    const existingAnswerIndex = conversation.annotations[annotationIndex].answers.findIndex(
-      (answer: any) => answer.name === name /* eslint-disable-line @typescript-eslint/no-explicit-any */
+    const annotation = conversation.annotations[annotationIndex];
+
+    // Ensure the answers array exists
+    if (!Array.isArray(annotation.answers)) {
+      annotation.answers = [];
+    }
+
+    // Check if an answer from the user already exists
+    const existingAnswerIndex = annotation.answers.findIndex(
+      (answer: any) => answer.name === name
     );
 
     if (existingAnswerIndex !== -1) {
-      // Update existing answer
+      // Update the existing answer
       const updatePath = `annotations.${annotationIndex}.answers.${existingAnswerIndex}.content`;
       await collection.updateOne(
         { _id: new ObjectId(id) },
-        { $set: { [updatePath]: updatedAnswer } }
+        { $set: { [updatePath]: Array.from(new Set(updatedAnswer)) } } // Use Set to avoid duplicate answers
       );
     } else {
+      // Add a new answer
       const newAnswer = {
         _id: new ObjectId(),
         name,
         timestamp: Date.now(),
-        content: updatedAnswer,
+        content: Array.from(new Set(updatedAnswer)), // Avoid duplicate answers
       };
+
       await collection.updateOne(
         { _id: new ObjectId(id) },
-        { $push: { [`annotations.${annotationIndex}.answers`]: newAnswer } as any }   // eslint-disable-line @typescript-eslint/no-explicit-any
+        { $push: { [`annotations.${annotationIndex}.answers`]: newAnswer } as any } // eslint-disable-line @typescript-eslint/no-explicit-any 
       );
     }
 

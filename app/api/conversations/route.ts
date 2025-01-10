@@ -183,13 +183,18 @@ export async function PATCH(req: Request) {
     }
 
     const collection = await getCollection();
-    const batchSize = 100;
-
+    const annotationObjectId = new ObjectId(annotationId);
+    const batchSize = 100; // Process documents in batches
     let skip = 0;
     let hasMoreDocuments = true;
+    let totalModified = 0;
 
     while (hasMoreDocuments) {
-      const documents = await collection.find({ "annotations._id": new ObjectId(annotationId) }).skip(skip).limit(batchSize).toArray();
+      const documents = await collection
+        .find({ "annotations._id": annotationObjectId })
+        .skip(skip)
+        .limit(batchSize)
+        .toArray();
 
       if (documents.length === 0) {
         hasMoreDocuments = false;
@@ -198,7 +203,7 @@ export async function PATCH(req: Request) {
 
       for (const doc of documents) {
         const result = await collection.updateOne(
-          { _id: doc._id, "annotations._id": new ObjectId(annotationId) },
+          { _id: doc._id, "annotations._id": annotationObjectId },
           {
             $set: Object.entries(updatedFields).reduce(
               (acc, [key, value]) => ({
@@ -210,15 +215,18 @@ export async function PATCH(req: Request) {
           }
         );
 
+        totalModified += result.modifiedCount;
         console.log(`Updated annotation in document ${doc._id}: ${result.modifiedCount}`);
       }
 
       skip += batchSize;
     }
 
-    return NextResponse.json({ message: "Annotation updated successfully" });
+    return NextResponse.json({
+      message: `Annotation updated successfully in ${totalModified} documents`,
+    });
   } catch (error) {
-    console.error("Error updating annotation:", error);
+    console.error("Error updating annotation in all conversations:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
