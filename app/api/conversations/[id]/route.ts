@@ -43,7 +43,7 @@ export async function PATCH(req: Request) {
 
     // Find the annotation by ID
     const annotationIndex = conversation.annotations.findIndex(
-      (annotation: any) => annotation._id.equals(new ObjectId(annotationId))
+      (annotation: any) => annotation._id.equals(new ObjectId(annotationId)) // eslint-disable-line @typescript-eslint/no-explicit-any
     );
 
     if (annotationIndex === -1) {
@@ -59,7 +59,7 @@ export async function PATCH(req: Request) {
 
     // Check if an answer from the user already exists
     const existingAnswerIndex = annotation.answers.findIndex(
-      (answer: any) => answer.name === name
+      (answer: any) => answer.name === name // eslint-disable-line @typescript-eslint/no-explicit-any
     );
 
     if (existingAnswerIndex !== -1) {
