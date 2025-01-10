@@ -1,32 +1,42 @@
 "use client";
+
 import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ConversationSidebar from "@/components/conversation-sidebar";
 import { Conversation } from "@/types/conversations";
+import { useDatabase } from "@/app/(protected)/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  /* eslint-disable @typescript-eslint/no-unused-vars */
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
   const [tempQuery, setTempQuery] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
   const router = useRouter();
+  const { activeDatabase } = useDatabase();
 
   useEffect(() => {
+    if (!activeDatabase) return;
+
     const fetchConversations = async () => {
       try {
         const queryParam = searchQuery
           ? `?query=${encodeURIComponent(searchQuery)}`
           : "";
+        console.log("[HomeLayout] Fetching conversations for:", activeDatabase);
+
         const response = await fetch(`/api/conversations${queryParam}`);
         const data = await response.json();
 
-        /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(data)) {
+          // Transform data for conversations
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
+            title: chatlog.title || "Untitled",
             stime: {
               text: chatlog.firstInteraction
                 ? new Date(chatlog.firstInteraction).toLocaleString()
@@ -50,20 +60,20 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           setConversations(transformedData);
           setFilteredConversations(transformedData);
         } else {
-          console.error("Expected an array but got:", data);
+          console.error("[HomeLayout] Expected an array but got:", data);
           setConversations([]);
           setFilteredConversations([]);
         }
       } catch (error) {
-        console.error("Error fetching conversations:", error);
+        console.error("[HomeLayout] Error fetching conversations:", error);
         setConversations([]);
         setFilteredConversations([]);
       }
     };
-    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     fetchConversations();
-  }, [searchQuery]);
+    setSelectedConversation(null);
+  }, [searchQuery, activeDatabase]);
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -88,13 +98,23 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         </div>
         <ConversationSidebar
           conversations={filteredConversations}
-          onConversationSelect={(id) => router.push(`/annotator/home/${id}`)}
+          onConversationSelect={(id) => {
+            setSelectedConversation(id);
+            router.push(`/admin/home/${id}`);
+          }}
+          selectedConversation={selectedConversation}
         />
       </div>
       <div className="flex-1 overflow-auto bg-background text-foreground">
-        {children}
+        {/* Show placeholder if no conversation selected */}
+        {!selectedConversation ? (
+          <div className="p-4 text-center text-muted">
+            <p className="text-lg">Select a conversation to view details</p>
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );
-  /* eslint-enable @typescript-eslint/no-unused-vars */
 }

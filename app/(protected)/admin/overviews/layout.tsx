@@ -7,13 +7,15 @@ import { Conversation } from "@/types/conversations";
 import { useDatabase } from "@/app/(protected)/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
   const [tempQuery, setTempQuery] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
   const router = useRouter();
   const { activeDatabase } = useDatabase();
 
@@ -31,9 +33,10 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         const data = await response.json();
 
         if (Array.isArray(data)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // Transform data for conversations
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
+            title: chatlog.title || "Untitled",
             stime: {
               text: chatlog.firstInteraction
                 ? new Date(chatlog.firstInteraction).toLocaleString()
@@ -69,6 +72,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
     };
 
     fetchConversations();
+    setSelectedConversation(null);
   }, [searchQuery, activeDatabase]);
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -94,11 +98,22 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         </div>
         <ConversationSidebar
           conversations={filteredConversations}
-          onConversationSelect={(id) => router.push(`/admin/overviews/${id}`)}
+          onConversationSelect={(id) => {
+            setSelectedConversation(id);
+            router.push(`/admin/home/${id}`);
+          }}
+          selectedConversation={selectedConversation}
         />
       </div>
       <div className="flex-1 overflow-auto bg-background text-foreground">
-        {children}
+        {/* Show placeholder if no conversation selected */}
+        {!selectedConversation ? (
+          <div className="p-4 text-center text-muted">
+            <p className="text-lg">Select a conversation to view details</p>
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ interface CueCardProps {
   lastInteraction: string;
   title: string;
   onClick: () => void;
+  isActive?: boolean;
 }
 
 const CueCard: React.FC<CueCardProps> = ({
@@ -15,6 +16,7 @@ const CueCard: React.FC<CueCardProps> = ({
   lastInteraction,
   title,
   onClick,
+  isActive = false,
 }) => {
   return (
     <motion.div
@@ -28,7 +30,11 @@ const CueCard: React.FC<CueCardProps> = ({
         stiffness: 200,
         damping: 15,
       }}
-      className="mb-4 p-4 rounded-md bg-secondary text-secondary-foreground cursor-pointer shadow-sm border border-sidebar-border"
+      className={`mb-4 p-4 rounded-md cursor-pointer shadow-sm border ${
+        isActive
+          ? "bg-primary text-primary-foreground border-primary shadow-md"
+          : "bg-secondary text-secondary-foreground border-sidebar-border"
+      }`}
       onClick={onClick}
     >
       <p className="font-bold text-lg break-words text-center">{title}</p>

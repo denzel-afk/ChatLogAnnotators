@@ -1,5 +1,3 @@
-import { StringToBoolean } from "class-variance-authority/types";
-
 export interface Message {
     role: string;
     content: string;
@@ -31,6 +29,7 @@ export interface Annotation {
   
 export interface Conversation {
   _id: string;
+  title: string;
   stime: {
     text: string;
     timestamp: number;
@@ -41,13 +40,6 @@ export interface Conversation {
     text: string;
     timestamp: number;
   };
-  person: string;
-}
-  
-export interface ModalProps {
-  title: string;
-  isOpen: boolean;
-  children: React.ReactNode;
-  onSave: () => void;
-  onClose: () => void;
+  person?: string;
+  Person?: string;
 }

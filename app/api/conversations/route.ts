@@ -23,6 +23,7 @@ export async function GET(req: Request) {
       filter = {
         $or: [
           { person: { $regex: searchQuery, $options: "i" } },
+          { Person: { $regex: searchQuery, $options: "i" } },
           { "stime.text": { $regex: searchQuery, $options: "i" } },
           { "last_interact.text": { $regex: searchQuery, $options: "i" } },
           { "messages.content": { $regex: searchQuery, $options: "i" } },
@@ -34,6 +35,7 @@ export async function GET(req: Request) {
   .find(filter, {
     projection: {
       person: 1,
+      Person: 1,
       stime: 1,
       last_interact: 1,
       messages: 1,
@@ -45,7 +47,7 @@ export async function GET(req: Request) {
 
   const conversations = documents.map((doc) => ({
     _id: doc._id.toString(),
-    Person: doc.person ?? "Unknown",
+    Person: (doc.person || doc.Person) ?? "Unknown",
     firstInteraction: doc.stime?.text || "No start time",
     lastInteraction: doc.last_interact?.text || "No last interaction",
     messages: doc.messages || [],
@@ -166,7 +168,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
 
 // PATCH API: Update annotation with batching
 export async function PATCH(req: Request) {

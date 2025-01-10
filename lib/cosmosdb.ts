@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
 let client: MongoClient | null = null;
+let cachedUri: string | null = null;
 let defaultClient: MongoClient | null = null;
 
 const defaultConfig = {
@@ -19,19 +20,33 @@ if (!defaultConfig.uri || !defaultConfig.databaseId || !defaultConfig.userCollec
   throw new Error("Missing required environment variables for default database");
 }
 
+
 const getClient = async () => {
-  if (!client) {
-    const activeDatabase = getActiveDatabase();
+  const activeDatabase = getActiveDatabase();
 
-    if (!activeDatabase) {
-      throw new Error("No active database set. Please switch a database first.");
-    }
-
-    client = new MongoClient(activeDatabase.uri);
-    await client.connect();
+  if (!activeDatabase) {
+    throw new Error("No active database set. Please switch a database first.");
   }
+
+  if (client && cachedUri === activeDatabase.uri) {
+    return client;
+  }
+
+  if (client) {
+    console.log("[getClient] Closing existing MongoDB client connection.");
+    await client.close();
+  }
+
+  console.log(`[getClient] Reconnecting to new URI: ${activeDatabase.uri}`);
+  client = new MongoClient(activeDatabase.uri);
+  await client.connect();
+
+  cachedUri = activeDatabase.uri;
+
   return client;
 };
+
+
 
 const getDefaultClient = async () => {
   if (!defaultClient) {
@@ -43,7 +58,6 @@ const getDefaultClient = async () => {
 
 export const getCollection = async () => {
   const activeDatabase = getActiveDatabase();
-  console.log("[getCollection] Current active database:", activeDatabase);
 
   if (!activeDatabase) {
     throw new Error("No active database set. Please switch a database first.");
@@ -51,9 +65,9 @@ export const getCollection = async () => {
 
   const mongoClient = await getClient();
   const database = mongoClient.db(activeDatabase.databaseId);
-  console.log("[getCollection] Using database:", activeDatabase.databaseId);
-
   const collection = database.collection(activeDatabase.containerId);
+
+  console.log("[getCollection] Using database:", activeDatabase.databaseId);
   console.log("[getCollection] Using collection:", activeDatabase.containerId);
 
   return collection;

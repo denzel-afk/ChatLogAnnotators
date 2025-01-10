@@ -5,11 +5,13 @@ import { Conversation } from "@/types/conversations";
 interface ConvSidebarProps {
   conversations: Conversation[];
   onConversationSelect: (conversationId: string) => void;
+  selectedConversation: string | null;
 }
 
 const ConversationSidebar: React.FC<ConvSidebarProps> = ({
   conversations,
   onConversationSelect,
+  selectedConversation,
 }) => {
   return (
     <div className="w-80 h-screen overflow-y-scroll bg-sidebar text-sidebar-foreground resize-x overflow-auto p-4 border-r border-sidebar-border">
@@ -20,11 +22,12 @@ const ConversationSidebar: React.FC<ConvSidebarProps> = ({
         conversations.map((conv) => (
           <CueCard
             key={conv._id}
-            title={conv.annotations?.[0]?.title || "Untitled"}
-            person={conv.person}
+            title={conv.title || "Untitled"}
+            person={conv.person || conv.Person || "Unknown"}
             firstInteraction={conv.stime.text}
             lastInteraction={conv.last_interact.text}
             onClick={() => onConversationSelect(conv._id)}
+            isActive={conv._id === selectedConversation}
           />
         ))
       ) : (
