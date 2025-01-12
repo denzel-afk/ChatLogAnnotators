@@ -1153,25 +1153,36 @@ export default function ConversationPage({
                 Comments
               </h2>
               <h4>Refresh after each comments addition</h4>
-              {message.comments?.map((comment) => (
-                <div
-                  key={comment._id}
-                  className="flex items-center justify-between space-x-2 p-2 bg-gray-700 rounded-md mb-2"
-                >
-                  <div>
-                    <p className="text-muted-foreground font-semibold">
-                      {comment.name}
-                    </p>
-                    <p className="text-muted-foreground">{comment.content}</p>
-                  </div>
-                  <button
-                    className="text-red-500 hover:text-red-600 transition duration-300"
-                    onClick={() => handleDeleteComment(index, comment._id)}
+              {message.comments
+                ?.filter((comment) => {
+                  const cookieValue = document.cookie
+                    .split("; ")
+                    .find((row) => row.startsWith("username="))
+                    ?.split("=")[1];
+                  const username = cookieValue
+                    ? decodeURIComponent(cookieValue)
+                    : "Anonymous";
+                  return comment.name === username;
+                })
+                .map((comment) => (
+                  <div
+                    key={comment._id}
+                    className="flex items-center justify-between space-x-2 p-2 bg-gray-700 rounded-md mb-2"
                   >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                    <div>
+                      <p className="text-muted-foreground font-semibold">
+                        {comment.name}
+                      </p>
+                      <p className="text-muted-foreground">{comment.content}</p>
+                    </div>
+                    <button
+                      className="text-red-500 hover:text-red-600 transition duration-300"
+                      onClick={() => handleDeleteComment(index, comment._id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
 
               <div className="flex items-center mt-4">
                 <input

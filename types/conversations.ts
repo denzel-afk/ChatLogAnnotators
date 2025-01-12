@@ -43,3 +43,19 @@ export interface Conversation {
   person?: string;
   Person?: string;
 }
+
+export interface User {
+  _id: string;
+  username: string;
+  role: string;
+  assignedDatabases?: string[];
+  assignedConversations?: string[];
+}
+
+export interface Database {
+  _id: string;
+  uri: string;
+  databaseId: string;
+  containerId: string;
+  name: string;
+}

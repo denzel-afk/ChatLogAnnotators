@@ -101,7 +101,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           conversations={filteredConversations}
           onConversationSelect={(id) => {
             setSelectedConversation(id);
-            router.push(`/admin/home/${id}`);
+            router.push(`/admin/overviews/${id}`);
           }}
           selectedConversation={selectedConversation}
         />

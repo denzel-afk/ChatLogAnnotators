@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";
 
-// add a new annotation to a message
+// add a new comment to a message
 export async function POST(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     const { id, comment } = await req.json();
     const params = await context.params; 
@@ -34,6 +34,38 @@ export async function POST(req: Request, context: any /* eslint-disable-line @ty
       return NextResponse.json({ message: "Annotation added successfully" });
     } catch (error) {
       console.error("Error adding annotation:", error);
+      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+  }
+
+  export async function DELETE(req: Request, context: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
+    const { id, commentId } = await req.json();
+    const params = await context.params;
+    const { messageIndex } = params;
+
+    if(!id || !commentId || messageIndex === undefined){
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    try{
+      const collection = await getCollection();
+      const result = await collection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $pull: {
+            [`messages.${messageIndex}.comments`]: {
+              _id: new ObjectId(commentId),
+            } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
+          },
+        }
+      );
+
+      if(result.modifiedCount === 0){
+        return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
+      }
+      return NextResponse.json({ message: "Comment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
       return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
   }
