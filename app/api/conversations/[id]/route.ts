@@ -1,3 +1,5 @@
+// this API is for fetching each conversation and the patch is for annotating the conversation.
+
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";

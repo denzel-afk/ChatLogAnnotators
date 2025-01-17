@@ -1,3 +1,5 @@
+// API for fetching conversations based on the division of the database
+
 import { NextResponse } from "next/server";
 import { getUserCollection } from "@/lib/cosmosdb";
 

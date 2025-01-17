@@ -1,112 +1,100 @@
 import { NextResponse } from "next/server";
-import { getUserCollection, getDatabaseCollection } from "@/lib/cosmosdb";
+import { getUserCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";
 
+function shuffleArray(array: any[]) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 export async function POST(req: Request) {
-    try {
-      const { databaseId, annotators, conversations } = await req.json();
-  
-      // Log received payload
-      console.log("Received Payload:", {
-        databaseId,
-        annotators,
-        conversations,
-      });
-  
-      // Validate databaseId
-      if (!databaseId) {
-        console.error("Missing or invalid databaseId");
-        return NextResponse.json(
-          { error: "Missing or invalid databaseId" },
-          { status: 400 }
-        );
-      }
-  
-      // Validate conversations
-      if (!Array.isArray(conversations) || conversations.length === 0) {
-        console.error("Missing or invalid conversations array");
-        return NextResponse.json(
-          { error: "Missing or invalid conversations array" },
-          { status: 400 }
-        );
-      }
-  
-      // Validate annotators
-      if (!Array.isArray(annotators) || annotators.length === 0) {
-        console.error("Missing or invalid annotators array");
-        return NextResponse.json(
-          { error: "Missing or invalid annotators array" },
-          { status: 400 }
-        );
-      }
-  
-      const usersCollection = await getUserCollection();
-      const databaseCollection = await getDatabaseCollection();
-  
-      // Validate database existence
-      const database = await databaseCollection.findOne({
-        _id: new ObjectId(databaseId),
-      });
-      if (!database) {
-        console.error("Database not found for databaseId:", databaseId);
-        return NextResponse.json({ error: "Database not found" }, { status: 404 });
-      }
-  
-      // Validate and filter the provided annotators
-      const validAnnotators = await usersCollection
-        .find(
-          { username: { $in: annotators }, assignedDatabases: databaseId },
-          { projection: { _id: 1 } }
-        )
-        .toArray();
-  
-      if (validAnnotators.length === 0) {
-        console.error(
-          "No valid annotators found for databaseId:",
-          databaseId,
-          "Annotators:",
-          annotators
-        );
-        return NextResponse.json({
-          error: "No valid annotators found for the selected database.",
-        });
-      }
-  
-      // Evenly distribute conversations among selected annotators
-      const annotatorIds = validAnnotators.map((annotator) =>
-        annotator._id.toString()
-      );
-      const assignedTasks: Record<string, string[]> = {};
-  
-      conversations.forEach((conversationId, index) => {
-        const annotatorIndex = index % annotatorIds.length;
-        const annotatorId = annotatorIds[annotatorIndex];
-        if (!assignedTasks[annotatorId]) assignedTasks[annotatorId] = [];
-        assignedTasks[annotatorId].push(conversationId);
-      });
-  
-      // Update annotators with tasks
-      for (const annotatorId of Object.keys(assignedTasks)) {
-        await usersCollection.updateOne(
-          { _id: new ObjectId(annotatorId) },
-          {
-            $addToSet: {
-              assignedConversations: { $each: assignedTasks[annotatorId] },
-            },
-          }
-        );
-      }
-  
-      return NextResponse.json({
-        message: "Conversations distributed automatically.",
-        assignedTasks,
-      });
-    } catch (error) {
-      console.error("Error in auto-division API:", error);
+  try {
+    const { databaseId, annotators, conversations, intersectionCount } = await req.json();
+
+    if (
+      !databaseId ||
+      !Array.isArray(annotators) ||
+      !Array.isArray(conversations) ||
+      typeof intersectionCount !== "number"
+    ) {
       return NextResponse.json(
-        { error: "Internal Server Error" },
-        { status: 500 }
+        { error: "Missing required fields" },
+        { status: 400 }
       );
     }
+
+    if (conversations.length === 0) {
+      return NextResponse.json(
+        { error: "No conversations provided" },
+        { status: 404 }
+      );
+    }
+
+    if (intersectionCount > conversations.length) {
+      return NextResponse.json(
+        { error: "Intersection count cannot exceed total conversations" },
+        { status: 400 }
+      );
+    }
+
+    const usersCollection = await getUserCollection();
+    const teamId = `team_${Date.now()}`; // Generate a unique team ID based on the timestamp
+
+    // Shuffle conversations to ensure randomness
+    const shuffledConversations = shuffleArray(conversations);
+
+    // Assign conversations
+    const assignedTasks: Record<string, ObjectId[]> = {};
+    const intersectionConversations = shuffledConversations
+      .slice(0, intersectionCount)
+      .map((id) => new ObjectId(id));
+    const remainingConversations = shuffledConversations
+      .slice(intersectionCount)
+      .map((id) => new ObjectId(id));
+
+    // Assign intersection conversations to all annotators
+    annotators.forEach((annotator) => {
+      assignedTasks[annotator] = [...intersectionConversations];
+    });
+
+    // Assign remaining conversations evenly
+    remainingConversations.forEach((conversationId, index) => {
+      const annotatorIndex = index % annotators.length;
+      const annotator = annotators[annotatorIndex];
+      assignedTasks[annotator].push(conversationId);
+    });
+
+    // Save assigned tasks with `teamId` in `assignedConversations`
+    for (const annotator of Object.keys(assignedTasks)) {
+      const updateQuery = {
+        $set: {
+          [`assignedConversations.${databaseId}`]: {
+            teamId,
+            conversations: assignedTasks[annotator],
+          },
+        },
+      };
+
+      await usersCollection.updateOne(
+        { username: annotator },
+        updateQuery,
+        { upsert: true }
+      );
+    }
+
+    return NextResponse.json({
+      message: "Conversations assigned successfully",
+      teamId,
+      assignedTasks,
+    });
+  } catch (error) {
+    console.error("Error in auto-division:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
-  
+}

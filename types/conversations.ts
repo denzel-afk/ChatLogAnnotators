@@ -48,9 +48,14 @@ export interface User {
   _id: string;
   username: string;
   role: string;
-  assignedDatabases?: string[];
-  assignedConversations?: string[];
+  assignedConversations?: {
+    [databaseId: string]: {
+      teamId: string;
+      conversations: string[];
+    };
+  };
 }
+
 
 export interface Database {
   _id: string;

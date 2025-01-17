@@ -1,3 +1,5 @@
+// Purpose: API routes for adding, updating, and deleting annotations in all messages in all documents.
+
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";

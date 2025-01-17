@@ -1,5 +1,7 @@
+// API routes for fetching conversations to be displayed in the conversation sidebar
+
 import { NextResponse } from "next/server";
-import { getCollection } from "@/lib/cosmosdb";
+import { getCollection, getUserCollection, getDatabaseCollection } from "@/lib/cosmosdb";
 import { ObjectId, Collection } from "mongodb";
 
 const MAX_BSON_SIZE = 16 * 1024 * 1024; // 16 MB
@@ -15,55 +17,126 @@ async function canAddAnnotation(collection: Collection, docId: ObjectId, newAnno
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const searchQuery = url.searchParams.get("query") || ""; // Get the 'query' parameter
+    const searchQuery = url.searchParams.get("query") || "";
+    const username = url.searchParams.get("username");
+    const databaseId = url.searchParams.get("databaseId");
+
+    if (!username || !databaseId) {
+      return NextResponse.json(
+        { error: "Missing username or databaseId parameter" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch user information
+    const userCollection = await getUserCollection();
+    const user = await userCollection.findOne({ username });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Fetch database _id for the given databaseId
+    const databaseCollection = await getDatabaseCollection();
+    const database = await databaseCollection.findOne({ databaseId });
+    if (!database) {
+      return NextResponse.json({ error: "Database not found" }, { status: 404 });
+    }
+    const databaseObjectId = database._id.toString();
+
     const collection = await getCollection();
 
-    let filter = {};
-    if (searchQuery) {
-      filter = {
-        $or: [
-          { person: { $regex: searchQuery, $options: "i" } },
-          { Person: { $regex: searchQuery, $options: "i" } },
-          { "stime.text": { $regex: searchQuery, $options: "i" } },
-          { "last_interact.text": { $regex: searchQuery, $options: "i" } },
-          { "messages.content": { $regex: searchQuery, $options: "i" } },
-        ],
-      };
+    // Admin role: Fetch all conversations
+    if (user.role === "admin") {
+      const documents = await collection
+        .find(
+          {},
+          {
+            projection: {
+              person: 1,
+              Person: 1,
+              stime: 1,
+              last_interact: 1,
+              messages: 1,
+              annotations: 1,
+            },
+          }
+        )
+        .toArray();
+
+      const conversations = documents.map((doc) => ({
+        _id: doc._id.toString(),
+        Person: (doc.person || doc.Person) ?? "Unknown",
+        firstInteraction: doc.stime?.text || "No start time",
+        lastInteraction: doc.last_interact?.text || "No last interaction",
+        messages: doc.messages || [],
+        annotations: doc.annotations || [],
+      }));
+
+      return NextResponse.json(conversations);
     }
 
-    const documents = await collection
-  .find(filter, {
-    projection: {
-      person: 1,
-      Person: 1,
-      stime: 1,
-      last_interact: 1,
-      messages: 1,
-      annotations: 1,
-    },
-  })
-  .toArray();
-
-
-  const conversations = documents.map((doc) => ({
-    _id: doc._id.toString(),
-    Person: (doc.person || doc.Person) ?? "Unknown",
-    firstInteraction: doc.stime?.text || "No start time",
-    lastInteraction: doc.last_interact?.text || "No last interaction",
-    messages: doc.messages || [],
-    annotations: doc.annotations || [],
-  }));
-
-    if (conversations.length === 0) {
-      return NextResponse.json({ message: "No conversations found" }, { status: 404 });
+    // Annotator role: Filter assigned conversations by database _id
+    if (user.role === "annotator") {
+      const assignedConversations =
+        user.assignedConversations?.[databaseObjectId] || null;
+    
+      if (!assignedConversations || assignedConversations.conversations.length === 0) {
+        return NextResponse.json([], { status: 200 });
+      }
+    
+      // Extract conversation IDs from the assignedConversations
+      const conversationIds = assignedConversations.conversations.map(
+        (id: string) => new ObjectId(id)
+      );
+    
+      let filter = { _id: { $in: conversationIds } };
+    
+      // Add search filter
+      if (searchQuery) {
+        const searchFilter = {
+          $or: [
+            { person: { $regex: searchQuery, $options: "i" } },
+            { Person: { $regex: searchQuery, $options: "i" } },
+            { "stime.text": { $regex: searchQuery, $options: "i" } },
+            { "last_interact.text": { $regex: searchQuery, $options: "i" } },
+            { "messages.content": { $regex: searchQuery, $options: "i" } },
+          ],
+        };
+        filter = { ...filter, ...searchFilter };
+      }
+    
+      const documents = await collection
+        .find(filter, {
+          projection: {
+            person: 1,
+            Person: 1,
+            stime: 1,
+            last_interact: 1,
+            messages: 1,
+            annotations: 1,
+          },
+        })
+        .toArray();
+    
+      const conversations = documents.map((doc) => ({
+        _id: doc._id.toString(),
+        Person: (doc.person || doc.Person) ?? "Unknown",
+        firstInteraction: doc.stime?.text || "No start time",
+        lastInteraction: doc.last_interact?.text || "No last interaction",
+        messages: doc.messages || [],
+        annotations: doc.annotations || [],
+      }));
+    
+      return NextResponse.json(conversations);
     }
-
-    return NextResponse.json(conversations);
+    
+    
   } catch (error) {
     console.error("Error fetching conversations:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
 // POST API: Add annotation with batching
 export async function POST(req: Request) {

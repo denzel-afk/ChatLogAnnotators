@@ -1,3 +1,5 @@
+// this file contains the logic for adding, deleting, and updating comments on a message
+
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";

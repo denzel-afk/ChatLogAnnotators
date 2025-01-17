@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Conversation, Annotation } from "@/types/conversations";
 import { toast } from "react-toastify";
+import { useDatabase } from "@/app/(protected)/layout";
 
 export default function AdminPage() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -32,9 +33,23 @@ export default function AdminPage() {
   const [containerId, setContainerId] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
   const [databaseName, setDatabaseName] = useState("");
+  const { activeDatabase } = useDatabase();
   const fetchFirstConversation = async () => {
     try {
-      const response = await fetch(`/api/conversations`);
+      const username = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("username="))
+        ?.split("=")[1];
+
+      if (!username) {
+        console.error("Username not found in cookies");
+        return null;
+      }
+      const response = await fetch(
+        `/api/conversations?username=${username}&databaseId=${
+          activeDatabase?.databaseId || ""
+        }`
+      );
       const data = await response.json();
 
       if (Array.isArray(data) && data.length > 0) {
@@ -71,7 +86,7 @@ export default function AdminPage() {
         setMessageAnnotation(data.messages?.[0]?.annotations || []);
       }
     });
-  }, []);
+  }, [activeDatabase]);
 
   // admin adding annotation on conversation level handler
   const handleAddAnnotation = () => {

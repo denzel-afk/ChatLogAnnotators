@@ -1,3 +1,5 @@
+// API for fetching all databases endpoint, containerId from the CosmosdB Database
+
 import { NextResponse } from "next/server";
 import { getDatabaseCollection } from "@/lib/cosmosdb";
 

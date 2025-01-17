@@ -25,4 +25,4 @@ export const switchDatabase = (newDatabase:
     activeDatabase = newDatabase;
 }
 
-export const getDefaultDatbase = () => defaultDatabase;
+export const getDefaultDatabase = () => defaultDatabase;

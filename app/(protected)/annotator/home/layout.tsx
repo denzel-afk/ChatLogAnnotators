@@ -7,7 +7,7 @@ import { Conversation } from "@/types/conversations";
 import { useDatabase } from "@/app/(protected)/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -20,7 +20,14 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
   const { activeDatabase } = useDatabase();
 
   useEffect(() => {
-    if (!activeDatabase) return;
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("username="))
+      ?.split("=")[1];
+    const username = cookieValue
+      ? decodeURIComponent(cookieValue)
+      : "Anonymous";
+    if (!activeDatabase || !username) return;
 
     const fetchConversations = async () => {
       try {
@@ -29,12 +36,13 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           : "";
         console.log("[HomeLayout] Fetching conversations for:", activeDatabase);
 
-        const response = await fetch(`/api/conversations${queryParam}`);
+        const response = await fetch(
+          `/api/conversations?username=${username}&databaseId=${activeDatabase.databaseId}${queryParam}`
+        );
         const data = await response.json();
 
         if (Array.isArray(data)) {
           // Transform data for conversations
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
             title: chatlog.title || "Untitled",
@@ -101,7 +109,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           conversations={filteredConversations}
           onConversationSelect={(id) => {
             setSelectedConversation(id);
-            router.push(`/admin/home/${id}`);
+            router.push(`/annotator/home/${id}`);
           }}
           selectedConversation={selectedConversation}
         />

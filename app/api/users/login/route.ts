@@ -1,3 +1,5 @@
+// API to login a user
+
 import { getUserCollection } from "@/lib/cosmosdb";
 
 export async function POST(req: Request) {

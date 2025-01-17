@@ -9,14 +9,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-
-// Define context for active database
-interface Database {
-  uri: string;
-  databaseId: string;
-  containerId: string;
-  name?: string;
-}
+import { Database } from "@/types/conversations";
 
 const DatabaseContext = createContext<{
   activeDatabase: Database | null;

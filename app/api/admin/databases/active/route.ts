@@ -1,3 +1,5 @@
+// API for fetching the active database endpoint, containerId from the CosmosdB Database and being loaded globally in the application
+
 import { NextResponse } from "next/server";
 import { getActiveDatabase } from "@/lib/databaseManager";
 

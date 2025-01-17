@@ -7,7 +7,7 @@ import { Conversation } from "@/types/conversations";
 import { useDatabase } from "@/app/(protected)/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -20,21 +20,27 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
   const { activeDatabase } = useDatabase();
 
   useEffect(() => {
-    if (!activeDatabase) return;
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("username="))
+      ?.split("=")[1];
+    const username = cookieValue
+      ? decodeURIComponent(cookieValue)
+      : "Anonymous";
+
+    if (!activeDatabase || !username) return;
 
     const fetchConversations = async () => {
       try {
         const queryParam = searchQuery
-          ? `?query=${encodeURIComponent(searchQuery)}`
+          ? `&query=${encodeURIComponent(searchQuery)}`
           : "";
-        console.log("[HomeLayout] Fetching conversations for:", activeDatabase);
-
-        const response = await fetch(`/api/conversations${queryParam}`);
+        const response = await fetch(
+          `/api/conversations?username=${username}&databaseId=${activeDatabase.databaseId}${queryParam}`
+        );
         const data = await response.json();
 
         if (Array.isArray(data)) {
-          // Transform data for conversations
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
             title: chatlog.title || "Untitled",
@@ -61,12 +67,11 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           setConversations(transformedData);
           setFilteredConversations(transformedData);
         } else {
-          console.error("[HomeLayout] Expected an array but got:", data);
           setConversations([]);
           setFilteredConversations([]);
         }
       } catch (error) {
-        console.error("[HomeLayout] Error fetching conversations:", error);
+        console.error("Error fetching conversations:", error);
         setConversations([]);
         setFilteredConversations([]);
       }
@@ -84,9 +89,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex-row flex text-foreground bg-background">
-      {/* Sidebar */}
       <div className="w-80 bg-background text-sidebar-foreground h-full border-r border-sidebar-border">
-        {/* Search Bar */}
         <div className="p-4 border-b border-sidebar-border">
           <input
             type="text"
@@ -107,7 +110,6 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         />
       </div>
       <div className="flex-1 overflow-auto bg-background text-foreground">
-        {/* Show placeholder if no conversation selected */}
         {!selectedConversation ? (
           <div className="p-4 text-center text-muted">
             <p className="text-lg">Select a conversation to view details</p>

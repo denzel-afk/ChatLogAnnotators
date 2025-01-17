@@ -1,3 +1,5 @@
+// Purpose: API route to switch the active database to a new one.
+
 import { NextResponse } from "next/server";
 import { getDatabaseCollection } from "@/lib/cosmosdb";
 import { switchDatabase, getActiveDatabase } from "@/lib/databaseManager";
