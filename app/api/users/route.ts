@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, role, teamId, assignedConversations = {} } = body;
+    const { username, role, assignedConversations = {} } = body;
 
     if (!username || !role) { 
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
