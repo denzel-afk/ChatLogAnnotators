@@ -31,7 +31,7 @@ export default function TeamsPage() {
     fetch("/api/users")
       .then((res) => res.json())
       .then((data) => {
-        setUsers(data);
+        setUsers(data || []);
 
         // Populate assignedConversations with teamId and conversations
         const assignedData: Record<
@@ -117,6 +117,7 @@ export default function TeamsPage() {
 
   const fetchConversationsByDatabase = async (databaseId: string) => {
     try {
+      toast.info("Loading conversations...");
       const res = await fetch(
         `/api/conversations/by-database?databaseId=${databaseId}`
       );
@@ -210,7 +211,7 @@ export default function TeamsPage() {
       databaseId: selectedDatabase,
       annotators: selectedAnnotators,
       conversations: conversations.map((conv) => conv._id),
-      intersectionCount,
+      numAnnotatorsPerConversation: intersectionCount, // Updated to match the new API
     };
 
     try {
@@ -241,7 +242,7 @@ export default function TeamsPage() {
           updatedAssignments[selectedDatabase] = {};
         }
         updatedAssignments[selectedDatabase][annotator] =
-          assignedTasks[annotator];
+          assignedTasks[annotator] || [];
       });
 
       setAssignedConversations(updatedAssignments);
@@ -313,64 +314,77 @@ export default function TeamsPage() {
       <h1 className="text-2xl font-bold mb-4">Annotators Management</h1>
 
       {/* Assigned Conversations View */}
-      {databases.map((database) => {
-        const databaseName = database.name || "Unknown Database";
-        const data = assignedConversations[database._id];
+      {databases.length > 0 &&
+      assignedConversations &&
+      Object.keys(assignedConversations).length > 0 ? (
+        databases.map((database) => {
+          const databaseName = database.name || "Unknown Database";
+          const data = assignedConversations[database._id];
 
-        if (!data) return null;
+          if (!data) return null;
 
-        const teams = Object.entries(data).reduce(
-          (acc, [username, details]) => {
-            const { teamId, conversations } = details;
-            if (!acc[teamId]) acc[teamId] = [];
-            acc[teamId].push({ username, conversations });
-            return acc;
-          },
-          {} as Record<string, { username: string; conversations: string[] }[]>
-        );
+          const teams = Object.entries(data || {}).reduce(
+            (acc, [username, details]) => {
+              if (details && details.teamId) {
+                const { teamId, conversations } = details;
+                if (!acc[teamId]) acc[teamId] = [];
+                acc[teamId].push({ username, conversations });
+              }
+              return acc;
+            },
+            {} as Record<
+              string,
+              { username: string; conversations: string[] }[]
+            >
+          );
 
-        return (
-          <div key={database._id} className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{databaseName}</h2>
-            {Object.entries(teams).map(([teamId, members]) => (
-              <div key={teamId}>
-                <h3 className="text-lg font-medium mb-2">Team ID: {teamId}</h3>
-                <table className="table-auto w-full border-collapse border border-gray-400 mb-4">
-                  <thead>
-                    <tr>
-                      <th className="border border-gray-400 px-4 py-2">
-                        Username
-                      </th>
-                      <th className="border border-gray-400 px-4 py-2">
-                        Conversations
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map(({ username, conversations }) => (
-                      <tr key={username}>
-                        <td className="border border-gray-400 px-4 py-2">
-                          {username}
-                        </td>
-                        <td className="border border-gray-400 px-4 py-2">
-                          <details>
-                            <summary>Show Conversations</summary>
-                            <ul className="mt-2 list-disc pl-4">
-                              {conversations.map((conv) => (
-                                <li key={conv}>{conv}</li>
-                              ))}
-                            </ul>
-                          </details>
-                        </td>
+          return (
+            <div key={database._id} className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">{databaseName}</h2>
+              {Object.entries(teams).map(([teamId, members]) => (
+                <div key={teamId}>
+                  <h3 className="text-lg font-medium mb-2">
+                    Team ID: {teamId}
+                  </h3>
+                  <table className="table-auto w-full border-collapse border border-gray-400 mb-4">
+                    <thead>
+                      <tr>
+                        <th className="border border-gray-400 px-4 py-2">
+                          Username
+                        </th>
+                        <th className="border border-gray-400 px-4 py-2">
+                          Conversations
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
-          </div>
-        );
-      })}
+                    </thead>
+                    <tbody>
+                      {members.map(({ username, conversations }) => (
+                        <tr key={username}>
+                          <td className="border border-gray-400 px-4 py-2">
+                            {username}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2">
+                            <details>
+                              <summary>Show Conversations</summary>
+                              <ul className="mt-2 list-disc pl-4">
+                                {conversations?.map((conv) => (
+                                  <li key={conv}>{conv}</li>
+                                ))}
+                              </ul>
+                            </details>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          );
+        })
+      ) : (
+        <p className="text-gray-500">No assigned conversations found.</p>
+      )}
 
       <div>
         {/* Task Division Section */}
@@ -444,13 +458,14 @@ export default function TeamsPage() {
                 ))}
             </div>
 
-            {/* Intersection Input */}
+            {/* Number of Annotators Per Conversation Input */}
             <label className="block text-sm font-semibold mb-2">
-              Intersection Count:
+              Number of Annotators Per Conversation:
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
+              max={selectedAnnotators.length}
               value={intersectionCount}
               onChange={(e) => setIntersectionCount(Number(e.target.value))}
               className="border rounded p-2 mb-4 w-1/2"
@@ -474,6 +489,7 @@ export default function TeamsPage() {
           </div>
         </div>
       )}
+
       {/* Manual Assign Modal */}
       {showManualAssignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getUserCollection } from "@/lib/cosmosdb";
 import { ObjectId } from "mongodb";
 
-function shuffleArray(array: any[]) { // eslint-disable-line @typescript-eslint/no-explicit-any
+// Function to shuffle an array (Fisher-Yates algorithm)
+function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
@@ -12,13 +13,13 @@ function shuffleArray(array: any[]) { // eslint-disable-line @typescript-eslint/
 
 export async function POST(req: Request) {
   try {
-    const { databaseId, annotators, conversations, intersectionCount } = await req.json();
+    const { databaseId, annotators, conversations, numAnnotatorsPerConversation } = await req.json();
 
     if (
       !databaseId ||
       !Array.isArray(annotators) ||
       !Array.isArray(conversations) ||
-      typeof intersectionCount !== "number"
+      typeof numAnnotatorsPerConversation !== "number"
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -33,41 +34,29 @@ export async function POST(req: Request) {
       );
     }
 
-    if (intersectionCount > conversations.length) {
+    if (numAnnotatorsPerConversation > annotators.length) {
       return NextResponse.json(
-        { error: "Intersection count cannot exceed total conversations" },
+        { error: "Number of annotators per conversation exceeds available annotators" },
         { status: 400 }
       );
     }
 
     const usersCollection = await getUserCollection();
-    const teamId = `team_${Date.now()}`; // Generate a unique team ID based on the timestamp
+    const teamId = `team_${Date.now()}`;
 
-    // Shuffle conversations to ensure randomness
-    const shuffledConversations = shuffleArray(conversations);
+    const shuffledAnnotators = shuffleArray(annotators);
 
-    // Assign conversations
     const assignedTasks: Record<string, ObjectId[]> = {};
-    const intersectionConversations = shuffledConversations
-      .slice(0, intersectionCount)
-      .map((id) => new ObjectId(id));
-    const remainingConversations = shuffledConversations
-      .slice(intersectionCount)
-      .map((id) => new ObjectId(id));
+    
+    conversations.forEach((conversationId) => {
+      const selectedAnnotators = shuffleArray([...shuffledAnnotators]).slice(0, numAnnotatorsPerConversation);
 
-    // Assign intersection conversations to all annotators
-    annotators.forEach((annotator) => {
-      assignedTasks[annotator] = [...intersectionConversations];
+      selectedAnnotators.forEach((annotator) => {
+        if (!assignedTasks[annotator]) assignedTasks[annotator] = [];
+        assignedTasks[annotator].push(new ObjectId(conversationId));
+      });
     });
 
-    // Assign remaining conversations evenly
-    remainingConversations.forEach((conversationId, index) => {
-      const annotatorIndex = index % annotators.length;
-      const annotator = annotators[annotatorIndex];
-      assignedTasks[annotator].push(conversationId);
-    });
-
-    // Save assigned tasks with `teamId` in `assignedConversations`
     for (const annotator of Object.keys(assignedTasks)) {
       const updateQuery = {
         $set: {
