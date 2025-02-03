@@ -10,20 +10,22 @@ import "react-toastify/dist/ReactToastify.css";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Database } from "@/types/conversations";
+import DatabaseSwitcher from "@/components/database-switcher";
 
 const DatabaseContext = createContext<{
   activeDatabase: Database | null;
   setActiveDatabase: (db: Database | null) => void;
   databases: Database[];
   switchDatabase: (db: Database) => Promise<void>;
-}>({
-  activeDatabase: null,
-  setActiveDatabase: () => {},
-  databases: [],
-  switchDatabase: async () => {},
-});
+} | null>(null); // ⬅ **Gunakan default null agar tidak error.**
 
-export const useDatabase = () => useContext(DatabaseContext);
+export const useDatabase = () => {
+  const context = useContext(DatabaseContext);
+  if (!context) {
+    throw new Error("useDatabase must be used within a DatabaseProvider");
+  }
+  return context;
+};
 
 export default function RootLayout({
   children,
@@ -59,7 +61,6 @@ export default function RootLayout({
   }, []);
 
   const switchDatabase = async (database: Database) => {
-    console.log("[RootLayout] Switching database to:", database);
     try {
       const response = await fetch("/api/admin/databases/switch", {
         method: "POST",
@@ -68,8 +69,6 @@ export default function RootLayout({
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        console.error("[RootLayout] Failed to switch database:", error);
         throw new Error("Failed to switch database");
       }
 
@@ -103,33 +102,7 @@ export default function RootLayout({
                       <SidebarTrigger />
                       <ModeToggle />
                     </div>
-                    {/* Database Switcher */}
-                    <div className="flex items-center space-x-2">
-                      <label
-                        htmlFor="databaseSwitcher"
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Active Database:
-                      </label>
-                      <select
-                        id="databaseSwitcher"
-                        value={activeDatabase?.uri || ""}
-                        onChange={(e) => {
-                          const selectedDatabase = databases.find(
-                            (db) => db.uri === e.target.value
-                          );
-                          if (selectedDatabase)
-                            switchDatabase(selectedDatabase);
-                        }}
-                        className="border border-muted focus:ring-primary focus:border-primary rounded-md p-2 bg-secondary text-secondary-foreground"
-                      >
-                        {databases.map((db) => (
-                          <option key={db.uri} value={db.uri}>
-                            {db.name || "Unnamed Database"}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <DatabaseSwitcher />
                   </div>
                   {children}
                   <ToastContainer />
