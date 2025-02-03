@@ -15,7 +15,7 @@ const DatabaseContext = createContext<{
   activeDatabase: Database | null;
   setActiveDatabase: (db: Database | null) => void;
   databases: Database[];
-  switchDatabase: (databaseId: string) => Promise<void>;
+  switchDatabase: (db: Database) => Promise<void>;
 }>({
   activeDatabase: null,
   setActiveDatabase: () => {},
@@ -34,19 +34,9 @@ export default function RootLayout({
   const [databases, setDatabases] = useState<Database[]>([]);
 
   useEffect(() => {
-    const fetchDatabases = async () => {
-      try {
-        const response = await fetch(`/api/admin/databases`);
-        const data = await response.json();
-        setDatabases(data);
-      } catch (error) {
-        console.error("[RootLayout] Error fetching databases:", error);
-      }
-    };
-
     const fetchActiveDatabase = async () => {
       try {
-        const response = await fetch(`/api/admin/databases/active`);
+        const response = await fetch("/api/admin/databases/active");
         const data = await response.json();
         setActiveDatabase(data);
       } catch (error) {
@@ -54,19 +44,32 @@ export default function RootLayout({
       }
     };
 
-    fetchDatabases();
+    const fetchDatabases = async () => {
+      try {
+        const response = await fetch("/api/admin/databases");
+        const data = await response.json();
+        setDatabases(data);
+      } catch (error) {
+        console.error("[RootLayout] Error fetching databases:", error);
+      }
+    };
+
     fetchActiveDatabase();
+    fetchDatabases();
   }, []);
 
-  const switchDatabase = async (databaseId: string) => {
+  const switchDatabase = async (database: Database) => {
+    console.log("[RootLayout] Switching database to:", database);
     try {
-      const response = await fetch(`/api/admin/databases/switch`, {
+      const response = await fetch("/api/admin/databases/switch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ databaseId }),
+        body: JSON.stringify(database),
       });
 
       if (!response.ok) {
+        const error = await response.json();
+        console.error("[RootLayout] Failed to switch database:", error);
         throw new Error("Failed to switch database");
       }
 
@@ -110,13 +113,18 @@ export default function RootLayout({
                       </label>
                       <select
                         id="databaseSwitcher"
-                        value={activeDatabase?.databaseId || ""}
-                        onChange={(e) => switchDatabase(e.target.value)}
+                        value={activeDatabase?.uri || ""}
+                        onChange={(e) => {
+                          const selectedDatabase = databases.find(
+                            (db) => db.uri === e.target.value
+                          );
+                          if (selectedDatabase)
+                            switchDatabase(selectedDatabase);
+                        }}
                         className="border border-muted focus:ring-primary focus:border-primary rounded-md p-2 bg-secondary text-secondary-foreground"
                       >
-                        <option value="">Select a database</option>
                         {databases.map((db) => (
-                          <option key={db.databaseId} value={db.databaseId}>
+                          <option key={db.uri} value={db.uri}>
                             {db.name || "Unnamed Database"}
                           </option>
                         ))}
