@@ -10,14 +10,14 @@ import "react-toastify/dist/ReactToastify.css";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Database } from "@/types/conversations";
-import DatabaseSwitcher from "@/components/database-switcher";
+import DatabaseSwitcher from "@/components/database-switcher"; // ⬅ Pindah UI switch ke komponen lain
 
 const DatabaseContext = createContext<{
   activeDatabase: Database | null;
   setActiveDatabase: (db: Database | null) => void;
   databases: Database[];
   switchDatabase: (db: Database) => Promise<void>;
-} | null>(null); // ⬅ **Gunakan default null agar tidak error.**
+} | null>(null);
 
 export const useDatabase = () => {
   const context = useContext(DatabaseContext);
@@ -102,6 +102,7 @@ export default function RootLayout({
                       <SidebarTrigger />
                       <ModeToggle />
                     </div>
+                    {/* Database Switcher pindah ke komponen terpisah */}
                     <DatabaseSwitcher />
                   </div>
                   {children}
