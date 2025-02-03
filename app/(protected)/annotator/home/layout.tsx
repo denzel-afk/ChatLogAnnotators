@@ -7,7 +7,7 @@ import { Conversation } from "@/types/conversations";
 import { useAssignment } from "@/app/(protected)/annotator/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
