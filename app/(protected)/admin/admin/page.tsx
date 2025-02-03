@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Conversation, Annotation } from "@/types/conversations";
 import { toast } from "react-toastify";
-import { useDatabase } from "@/app/(protected)/layout";
+import { useDatabase } from "@/app/(protected)/admin/layout";
 
 export default function AdminPage() {
   const [conversation, setConversation] = useState<Conversation | null>(null);

@@ -35,17 +35,11 @@ export async function POST(req: Request) {
     if (existingUser) {
       return NextResponse.json({ error: "User already exists" }, { status: 409 });
     }
-
-    // Ensure assignedConversations is in the correct format
-    const formattedAssignedConversations = 
-      typeof assignedConversations === "object" && !Array.isArray(assignedConversations)
-        ? assignedConversations
-        : {};
-
+    
     const newUser = {
       username,
       role,
-      assignedConversations: formattedAssignedConversations,
+      assignedConversations,
     };
 
     await usersCollection.insertOne(newUser);

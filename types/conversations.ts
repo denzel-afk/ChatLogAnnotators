@@ -50,8 +50,10 @@ export interface User {
   role: string;
   assignedConversations?: {
     [databaseId: string]: {
-      teamId: string;
-      conversations: string[];
+      assignments: {
+        assignmentTitle: string;
+        conversations: string[];
+      }[];
     };
   };
 }

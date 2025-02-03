@@ -13,13 +13,14 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export async function POST(req: Request) {
   try {
-    const { databaseId, annotators, conversations, numAnnotatorsPerConversation } = await req.json();
+    const { databaseId, annotators, conversations, numAnnotatorsPerConversation, assignmentName } = await req.json();
 
     if (
       !databaseId ||
       !Array.isArray(annotators) ||
       !Array.isArray(conversations) ||
-      typeof numAnnotatorsPerConversation !== "number"
+      typeof numAnnotatorsPerConversation !== "number" ||
+      !assignmentName
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -42,12 +43,9 @@ export async function POST(req: Request) {
     }
 
     const usersCollection = await getUserCollection();
-    const teamId = `team_${Date.now()}`;
-
     const shuffledAnnotators = shuffleArray(annotators);
-
     const assignedTasks: Record<string, ObjectId[]> = {};
-    
+
     conversations.forEach((conversationId) => {
       const selectedAnnotators = shuffleArray([...shuffledAnnotators]).slice(0, numAnnotatorsPerConversation);
 
@@ -58,25 +56,32 @@ export async function POST(req: Request) {
     });
 
     for (const annotator of Object.keys(assignedTasks)) {
-      const updateQuery = {
-        $set: {
-          [`assignedConversations.${databaseId}`]: {
-            teamId,
-            conversations: assignedTasks[annotator],
-          },
-        },
-      };
+      const user = await usersCollection.findOne({ username: annotator });
+
+      if (!user) {
+        console.error(`Annotator ${annotator} not found`);
+        continue;
+      }
 
       await usersCollection.updateOne(
         { username: annotator },
-        updateQuery,
+        {
+          $push: {
+            [`assignedConversations.${databaseId}.assignments`]: {
+              $each: [{
+                assignmentTitle: assignmentName,
+                conversations: assignedTasks[annotator],
+              }],
+            },
+          } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
+        },
         { upsert: true }
       );
     }
 
     return NextResponse.json({
       message: "Conversations assigned successfully",
-      teamId,
+      assignmentTitle: assignmentName,
       assignedTasks,
     });
   } catch (error) {

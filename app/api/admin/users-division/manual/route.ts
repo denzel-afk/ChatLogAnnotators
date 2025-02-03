@@ -4,28 +4,29 @@ import { ObjectId } from "mongodb";
 
 export async function POST(req: Request) {
   try {
-    const { userIds, databaseId, conversations } = await req.json();
+    const { userIds, databaseId, conversations, assignmentName } = await req.json();
 
     if (
       !Array.isArray(userIds) ||
       !databaseId ||
       !Array.isArray(conversations) ||
-      conversations.length === 0
+      conversations.length === 0 ||
+      !assignmentName
     ) {
       return NextResponse.json(
-        { error: "Missing required fields: userIds, databaseId, conversations" },
+        { error: "Missing required fields: userIds, databaseId, conversations, assignmentName" },
         { status: 400 }
       );
     }
 
     const usersCollection = await getUserCollection();
+    const assignmentTitle = assignmentName;
 
-    // Iterate over all provided user IDs
     for (const userId of userIds) {
       let objectId;
       try {
         objectId = new ObjectId(userId);
-      } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
+      } catch (error) { 
         console.error(`Invalid ObjectId: ${userId}`);
         continue;
       }
@@ -37,35 +38,23 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Check if the user already has a `teamId` for this database
-      const assignedConversations = user.assignedConversations || {};
-      const existingEntry = assignedConversations[databaseId];
-
-      let teamId = existingEntry?.teamId;
-
-      // If no teamId exists, generate a new one
-      if (!teamId) {
-        teamId = `manual_team_${Date.now()}`;
-      }
-
-      // Update the user's assignedConversations for this database
       await usersCollection.updateOne(
         { _id: objectId },
         {
-          $set: {
-            [`assignedConversations.${databaseId}`]: {
-              teamId,
-              conversations: existingEntry?.conversations
-                ? Array.from(new Set([...existingEntry.conversations, ...conversations]))
-                : conversations,
+          $push: {
+            [`assignedConversations.${databaseId}.assignments`]: {
+              assignmentTitle,
+              conversations,
             },
-          },
-        }
+          } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
+        },
+        { upsert: true }
       );
     }
 
     return NextResponse.json({
       message: "Conversations assigned successfully",
+      assignmentTitle,
     });
   } catch (error) {
     console.error("Error assigning conversations:", error);

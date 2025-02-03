@@ -61,7 +61,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Invalid or missing annotation ID" }, { status: 400 });
     }
     const collection = await getCollection();
-    const batchSize = 100; // Ukuran batch untuk dokumen yang akan diproses
+    const batchSize = 100;
     let skip = 0;
     let hasMoreDocuments = true;
     let totalModified = 0;

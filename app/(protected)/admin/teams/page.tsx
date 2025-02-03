@@ -9,11 +9,18 @@ export default function TeamsPage() {
   const [databases, setDatabases] = useState<Database[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [assignedConversations, setAssignedConversations] = useState<
-    Record<string, Record<string, { teamId: string; conversations: string[] }>>
+    Record<
+      string,
+      Record<
+        string,
+        { assignments: { assignmentTitle: string; conversations: string[] }[] }
+      >
+    >
   >({});
   const [selectedAnnotators, setSelectedAnnotators] = useState<string[]>([]);
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
   const [intersectionCount, setIntersectionCount] = useState<number>(0);
+  const [assignmentName, setAssignmentName] = useState<string>("");
   const [showDivisionModal, setShowDivisionModal] = useState<boolean>(false);
   const [showManualAssignModal, setShowManualAssignModal] =
     useState<boolean>(false);
@@ -33,10 +40,17 @@ export default function TeamsPage() {
       .then((data) => {
         setUsers(data || []);
 
-        // Populate assignedConversations with teamId and conversations
         const assignedData: Record<
           string,
-          Record<string, { teamId: string; conversations: string[] }>
+          Record<
+            string,
+            {
+              assignments: {
+                assignmentTitle: string;
+                conversations: string[];
+              }[];
+            }
+          >
         > = {};
 
         data.forEach((user: User) => {
@@ -45,8 +59,7 @@ export default function TeamsPage() {
               ([databaseId, details]) => {
                 if (!assignedData[databaseId]) assignedData[databaseId] = {};
                 assignedData[databaseId][user.username] = {
-                  teamId: details.teamId,
-                  conversations: details.conversations,
+                  assignments: details.assignments || [],
                 };
               }
             );
@@ -144,22 +157,23 @@ export default function TeamsPage() {
     if (
       selectedAnnotators.length === 0 ||
       selectedConversationIds.length === 0 ||
-      selectedDatabase === ""
+      selectedDatabase === "" ||
+      !assignmentName
     ) {
       toast.error("Please select annotators, conversations, and a database");
       return;
     }
 
-    // Map selected annotators to usernames
     const annotatorUsernames = users
       .filter((user) => selectedAnnotators.includes(user._id))
       .map((user) => user.username);
 
     const payload = {
-      userIds: selectedAnnotators, // Use user IDs for the backend
-      usernames: annotatorUsernames, // Pass usernames for display purposes
+      userIds: selectedAnnotators,
+      usernames: annotatorUsernames,
       databaseId: selectedDatabase,
       conversations: selectedConversationIds,
+      assignmentName,
     };
 
     try {
@@ -175,7 +189,7 @@ export default function TeamsPage() {
         return;
       }
 
-      const { teamId } = await res.json();
+      const { assignmentTitle } = await res.json();
 
       // Update the assignedConversations state with the new teamId
       const updatedAssignments = { ...assignedConversations };
@@ -183,15 +197,20 @@ export default function TeamsPage() {
         if (!updatedAssignments[selectedDatabase]) {
           updatedAssignments[selectedDatabase] = {};
         }
-        updatedAssignments[selectedDatabase][username] = {
-          teamId,
+        if (!updatedAssignments[selectedDatabase][username]) {
+          updatedAssignments[selectedDatabase][username] = { assignments: [] };
+        }
+        updatedAssignments[selectedDatabase][username].assignments.push({
+          assignmentTitle,
           conversations: selectedConversationIds,
-        };
+        });
       });
 
       setAssignedConversations(updatedAssignments);
 
-      toast.success(`Conversations assigned successfully! Team ID: ${teamId}`);
+      toast.success(
+        `Conversations assigned successfully with Assignment Title: ${assignmentTitle}`
+      );
       setShowManualAssignModal(false);
       setSelectedAnnotators([]);
       setSelectedConversationIds([]);
@@ -202,8 +221,14 @@ export default function TeamsPage() {
   };
 
   const handleAutoDivideTasks = async () => {
-    if (selectedAnnotators.length === 0 || selectedDatabase === "") {
-      toast.error("Please select annotators and a database");
+    if (
+      selectedAnnotators.length === 0 ||
+      selectedDatabase === "" ||
+      !assignmentName
+    ) {
+      toast.error(
+        "Please select annotators, database, and provide an assignment name"
+      );
       return;
     }
 
@@ -211,7 +236,8 @@ export default function TeamsPage() {
       databaseId: selectedDatabase,
       annotators: selectedAnnotators,
       conversations: conversations.map((conv) => conv._id),
-      numAnnotatorsPerConversation: intersectionCount, // Updated to match the new API
+      numAnnotatorsPerConversation: intersectionCount,
+      assignmentName,
     };
 
     try {
@@ -227,7 +253,7 @@ export default function TeamsPage() {
         return;
       }
 
-      const { teamId, assignedTasks } = await res.json();
+      const { assignmentTitle, assignedTasks } = await res.json();
 
       if (!assignedTasks || typeof assignedTasks !== "object") {
         console.error("Invalid assignedTasks response:", assignedTasks);
@@ -241,12 +267,19 @@ export default function TeamsPage() {
         if (!updatedAssignments[selectedDatabase]) {
           updatedAssignments[selectedDatabase] = {};
         }
-        updatedAssignments[selectedDatabase][annotator] =
-          assignedTasks[annotator] || [];
+        if (!updatedAssignments[selectedDatabase][annotator]) {
+          updatedAssignments[selectedDatabase][annotator] = { assignments: [] };
+        }
+        updatedAssignments[selectedDatabase][annotator].assignments.push({
+          assignmentTitle,
+          conversations: assignedTasks[annotator] || [],
+        });
       });
 
       setAssignedConversations(updatedAssignments);
-      toast.success(`Tasks divided successfully! Team ID: ${teamId}`);
+      toast.success(
+        `Tasks divided successfully with assignment Title: ${assignmentTitle}`
+      );
       setShowDivisionModal(false);
     } catch (err) {
       console.error("Error dividing tasks:", err);
@@ -325,10 +358,13 @@ export default function TeamsPage() {
 
           const teams = Object.entries(data || {}).reduce(
             (acc, [username, details]) => {
-              if (details && details.teamId) {
-                const { teamId, conversations } = details;
-                if (!acc[teamId]) acc[teamId] = [];
-                acc[teamId].push({ username, conversations });
+              if (details && details.assignments) {
+                details.assignments.forEach(
+                  ({ assignmentTitle, conversations }) => {
+                    if (!acc[assignmentTitle]) acc[assignmentTitle] = [];
+                    acc[assignmentTitle].push({ username, conversations });
+                  }
+                );
               }
               return acc;
             },
@@ -341,10 +377,10 @@ export default function TeamsPage() {
           return (
             <div key={database._id} className="mb-6">
               <h2 className="text-xl font-semibold mb-2">{databaseName}</h2>
-              {Object.entries(teams).map(([teamId, members]) => (
-                <div key={teamId}>
+              {Object.entries(teams).map(([assignmentTitle, members]) => (
+                <div key={assignmentTitle}>
                   <h3 className="text-lg font-medium mb-2">
-                    Team ID: {teamId}
+                    Assignment Title: {assignmentTitle}
                   </h3>
                   <table className="table-auto w-full border-collapse border border-gray-400 mb-4">
                     <thead>
@@ -409,6 +445,19 @@ export default function TeamsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-blue-500 rounded p-6 w-3/4">
             <h3 className="text-xl font-bold mb-4">Task Division</h3>
+
+            {/* Give name to Assignment */}
+
+            <label className="block text-sm font-semibold mb-2">
+              Assignment Name:
+            </label>
+            <input
+              type="text"
+              placeholder="Enter assignment name"
+              value={assignmentName}
+              onChange={(e) => setAssignmentName(e.target.value)}
+              className="border rounded p-2 mb-4 w-1/2"
+            />
 
             {/* Select Database */}
             <label className="block text-sm font-semibold mb-2">
@@ -497,6 +546,18 @@ export default function TeamsPage() {
             <h3 className="text-xl font-bold mb-4">
               Manual Assign Conversations
             </h3>
+
+            {/* Give name to Assignment */}
+            <label className="block text-sm font-semibold mb-2">
+              Assignment Name:
+            </label>
+            <input
+              type="text"
+              placeholder="Enter assignment name"
+              value={assignmentName}
+              onChange={(e) => setAssignmentName(e.target.value)}
+              className="border rounded p-2 mb-4 w-1/2"
+            />
 
             {/* Select Database */}
             <label className="block text-sm font-semibold mb-2">

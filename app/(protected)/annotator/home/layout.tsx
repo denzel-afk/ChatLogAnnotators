@@ -4,10 +4,9 @@ import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ConversationSidebar from "@/components/conversation-sidebar";
 import { Conversation } from "@/types/conversations";
-import { useDatabase } from "@/app/(protected)/layout";
+import { useAssignment } from "@/app/(protected)/annotator/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
@@ -18,56 +17,57 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
     string | null
   >(null);
   const router = useRouter();
-  const { activeDatabase } = useDatabase();
+  const { activeAssignment } = useAssignment();
 
   useEffect(() => {
-    const cookieValue = document.cookie
+    const username = document.cookie
       .split("; ")
       .find((row) => row.startsWith("username="))
       ?.split("=")[1];
-    const username = cookieValue
-      ? decodeURIComponent(cookieValue)
-      : "Anonymous";
-    if (!activeDatabase || !username) return;
+
+    if (!activeAssignment || !username) return;
 
     const fetchConversations = async () => {
       try {
         const queryParam = searchQuery
-          ? `?query=${encodeURIComponent(searchQuery)}`
+          ? `&query=${encodeURIComponent(searchQuery)}`
           : "";
-        console.log("[HomeLayout] Fetching conversations for:", activeDatabase);
+        console.log(
+          "[HomeLayout] Fetching conversations for assignment:",
+          activeAssignment
+        );
 
         const response = await fetch(
-          `/api/conversations?username=${username}&databaseId=${activeDatabase.databaseId}${queryParam}`
+          `/api/conversations/annotators?username=${username}&assignmentTitle=${encodeURIComponent(
+            activeAssignment
+          )}${queryParam}`
         );
+
         const data = await response.json();
 
         if (Array.isArray(data)) {
-          // Transform data for conversations
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
             title: chatlog.title || "Untitled",
-            stime: {
-              text: chatlog.firstInteraction
-                ? new Date(chatlog.firstInteraction).toLocaleString()
-                : "Unknown Start Time",
-              timestamp: chatlog.firstInteraction
-                ? new Date(chatlog.firstInteraction).getTime()
-                : 0,
-            },
-            last_interact: {
-              text: chatlog.lastInteraction
-                ? new Date(chatlog.lastInteraction).toLocaleString()
-                : "Unknown Last Interaction",
-              timestamp: chatlog.lastInteraction
-                ? new Date(chatlog.lastInteraction).getTime()
-                : 0,
-            },
+            stime: chatlog.firstInteraction
+              ? {
+                  text: new Date(chatlog.firstInteraction).toLocaleString(),
+                  timestamp: new Date(chatlog.firstInteraction).getTime(),
+                }
+              : { text: "Unknown Start Time", timestamp: 0 },
+
+            last_interact: chatlog.lastInteraction
+              ? {
+                  text: new Date(chatlog.lastInteraction).toLocaleString(),
+                  timestamp: new Date(chatlog.lastInteraction).getTime(),
+                }
+              : { text: "Unknown Last Interaction", timestamp: 0 },
+
             person: chatlog.Person || "Unknown Person",
             messages: chatlog.messages || [],
             annotations: chatlog.annotations || [],
           }));
+
           setConversations(transformedData);
           setFilteredConversations(transformedData);
         } else {
@@ -83,27 +83,18 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
     };
 
     fetchConversations();
-    setSelectedConversation(null);
-  }, [searchQuery, activeDatabase]);
-
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      setSearchQuery(tempQuery);
-    }
-  };
+  }, [searchQuery, activeAssignment]);
 
   return (
     <div className="flex-row flex text-foreground bg-background">
-      {/* Sidebar */}
       <div className="w-80 bg-background text-sidebar-foreground h-full border-r border-sidebar-border">
-        {/* Search Bar */}
         <div className="p-4 border-b border-sidebar-border">
           <input
             type="text"
             placeholder="Search conversations..."
             value={tempQuery}
             onChange={(e) => setTempQuery(e.target.value)}
-            onKeyDown={handleSearch}
+            onKeyDown={(e) => e.key === "Enter" && setSearchQuery(tempQuery)}
             className="w-full p-2 rounded-md bg-input text-foreground border border-border focus:outline-none focus:ring focus:ring-ring"
           />
         </div>
@@ -117,7 +108,6 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         />
       </div>
       <div className="flex-1 overflow-auto bg-background text-foreground">
-        {/* Show placeholder if no conversation selected */}
         {!selectedConversation ? (
           <div className="p-4 text-center text-muted">
             <p className="text-lg">Select a conversation to view details</p>

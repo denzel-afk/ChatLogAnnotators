@@ -19,6 +19,7 @@ export default function ConversationPage({
   const [localCommentContent, setLocalCommentContent] = useState<
     Record<number, string>
   >({});
+  const [refreshTrigger, setRefreshTrigger] = useState<boolean>(false);
 
   useEffect(() => {
     params
@@ -42,7 +43,7 @@ export default function ConversationPage({
         toast.error("Error resolving params:", error);
         setError("Invalid conversation ID");
       });
-  }, [params]);
+  }, [params, refreshTrigger]);
 
   const handleSaveAnswer = (annotationId: string, updatedContent: string[]) => {
     if (!conversationId) return;
@@ -205,6 +206,28 @@ export default function ConversationPage({
       });
   };
 
+  const handleDeleteComment = (messageIndex: number, commentId: string) => {
+    if (!conversationId || !commentId) return;
+
+    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: conversationId,
+        commentId,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to delete comment");
+        return res.json();
+      })
+      .then(() => {
+        toast.success("Comment deleted successfully");
+        setRefreshTrigger((prev) => !prev);
+      })
+      .catch((err) => toast.error("Error deleting comment: " + err.message));
+  };
+
   const handleAddComment = (messageIndex: number, commentContent: string) => {
     const cookieValue = document.cookie
       .split("; ")
@@ -237,69 +260,10 @@ export default function ConversationPage({
       })
       .then(() => {
         toast.success("Comment added successfully");
-        setConversation((prev) =>
-          prev
-            ? {
-                ...prev,
-                messages: prev.messages.map((message, index) =>
-                  index === messageIndex
-                    ? {
-                        ...message,
-                        comments: [
-                          ...(message.comments || []),
-                          {
-                            _id: new Date().toISOString(),
-                            name: username,
-                            timestamp: Date.now(),
-                            content: commentContent,
-                          },
-                        ],
-                      }
-                    : message
-                ),
-              }
-            : null
-        );
+        setRefreshTrigger((prev) => !prev);
+        setLocalCommentContent((prev) => ({ ...prev, [messageIndex]: "" }));
       })
       .catch((err) => toast.error("Error adding comment: " + err.message));
-  };
-
-  const handleDeleteComment = (messageIndex: number, commentId: string) => {
-    if (!conversationId || !commentId) return;
-
-    fetch(`/api/conversations/${conversationId}/messages/${messageIndex}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: conversationId,
-        commentId,
-      }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to delete comment");
-        return res.json();
-      })
-      .then(() => {
-        toast.success("Comment deleted successfully");
-        setConversation((prev) =>
-          prev
-            ? {
-                ...prev,
-                messages: prev.messages.map((message, index) =>
-                  index === messageIndex
-                    ? {
-                        ...message,
-                        comments: message.comments?.filter(
-                          (comment) => comment._id !== commentId
-                        ),
-                      }
-                    : message
-                ),
-              }
-            : null
-        );
-      })
-      .catch((err) => toast.error("Error deleting comment: " + err.message));
   };
 
   if (error) {
