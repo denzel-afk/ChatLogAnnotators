@@ -10,22 +10,20 @@ import "react-toastify/dist/ReactToastify.css";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Database } from "@/types/conversations";
-import DatabaseSwitcher from "@/components/database-switcher"; // ⬅ Pindah UI switch ke komponen lain
 
 const DatabaseContext = createContext<{
   activeDatabase: Database | null;
   setActiveDatabase: (db: Database | null) => void;
   databases: Database[];
-  switchDatabase: (db: Database) => Promise<void>;
-} | null>(null);
+  switchDatabase: (databaseId: string) => Promise<void>;
+}>({
+  activeDatabase: null,
+  setActiveDatabase: () => {},
+  databases: [],
+  switchDatabase: async () => {},
+});
 
-export const useDatabase = () => {
-  const context = useContext(DatabaseContext);
-  if (!context) {
-    throw new Error("useDatabase must be used within a DatabaseProvider");
-  }
-  return context;
-};
+export const useDatabase = () => useContext(DatabaseContext);
 
 export default function RootLayout({
   children,
@@ -36,19 +34,9 @@ export default function RootLayout({
   const [databases, setDatabases] = useState<Database[]>([]);
 
   useEffect(() => {
-    const fetchActiveDatabase = async () => {
-      try {
-        const response = await fetch("/api/admin/databases/active");
-        const data = await response.json();
-        setActiveDatabase(data);
-      } catch (error) {
-        console.error("[RootLayout] Error fetching active database:", error);
-      }
-    };
-
     const fetchDatabases = async () => {
       try {
-        const response = await fetch("/api/admin/databases");
+        const response = await fetch(`/api/admin/databases`);
         const data = await response.json();
         setDatabases(data);
       } catch (error) {
@@ -56,16 +44,26 @@ export default function RootLayout({
       }
     };
 
-    fetchActiveDatabase();
+    const fetchActiveDatabase = async () => {
+      try {
+        const response = await fetch(`/api/admin/databases/active`);
+        const data = await response.json();
+        setActiveDatabase(data);
+      } catch (error) {
+        console.error("[RootLayout] Error fetching active database:", error);
+      }
+    };
+
     fetchDatabases();
+    fetchActiveDatabase();
   }, []);
 
-  const switchDatabase = async (database: Database) => {
+  const switchDatabase = async (databaseId: string) => {
     try {
-      const response = await fetch("/api/admin/databases/switch", {
+      const response = await fetch(`/api/admin/databases/switch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(database),
+        body: JSON.stringify({ databaseId }),
       });
 
       if (!response.ok) {
@@ -102,8 +100,28 @@ export default function RootLayout({
                       <SidebarTrigger />
                       <ModeToggle />
                     </div>
-                    {/* Database Switcher pindah ke komponen terpisah */}
-                    <DatabaseSwitcher />
+                    {/* Database Switcher */}
+                    <div className="flex items-center space-x-2">
+                      <label
+                        htmlFor="databaseSwitcher"
+                        className="text-sm font-medium text-foreground"
+                      >
+                        Active Database:
+                      </label>
+                      <select
+                        id="databaseSwitcher"
+                        value={activeDatabase?.databaseId || ""}
+                        onChange={(e) => switchDatabase(e.target.value)}
+                        className="border border-muted focus:ring-primary focus:border-primary rounded-md p-2 bg-secondary text-secondary-foreground"
+                      >
+                        <option value="">Select a database</option>
+                        {databases.map((db) => (
+                          <option key={db.databaseId} value={db.databaseId}>
+                            {db.name || "Unnamed Database"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   {children}
                   <ToastContainer />
