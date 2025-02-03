@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       let objectId;
       try {
         objectId = new ObjectId(userId);
-      } catch (error) { 
+      } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
         console.error(`Invalid ObjectId: ${userId}`);
         continue;
       }

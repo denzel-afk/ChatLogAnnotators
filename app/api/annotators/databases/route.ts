@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    let assignmentsList: { assignmentTitle: string; databaseId: string }[] = [];
+    const assignmentsList: { assignmentTitle: string; databaseId: string }[] = [];
 
     for (const [databaseId, data] of Object.entries(user.assignedConversations || {}) as [string, { assignments?: { assignmentTitle: string }[] }][]) {
       if (data.assignments) {

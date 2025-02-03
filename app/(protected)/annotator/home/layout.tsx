@@ -7,7 +7,7 @@ import { Conversation } from "@/types/conversations";
 import { useAssignment } from "@/app/(protected)/annotator/layout";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -46,6 +46,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
         const data = await response.json();
 
         if (Array.isArray(data)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformedData = data.map((chatlog: any) => ({
             _id: chatlog._id || "unknown_id",
             title: chatlog.title || "Untitled",
