@@ -40,7 +40,7 @@ export default function SummaryPage({
             });
             setHasComments(commentPresence);
             const indices: { [key: number]: boolean } = {};
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.messages.forEach((_: any, index: number) => {
               indices[index] = toggleAll;
             });
