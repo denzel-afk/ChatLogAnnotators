@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Conversation, Annotation } from "@/types/conversations";
+import { Conversation, Annotation, Database } from "@/types/conversations";
 import { toast } from "react-toastify";
 import { useDatabase } from "@/components/database-context";
 
@@ -33,6 +33,8 @@ export default function AdminPage() {
   const [containerId, setContainerId] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
   const [databaseName, setDatabaseName] = useState("");
+  const [databases, setDatabases] = useState<Database[]>([]);
+  const [updateTrigger, setUpdatetrigger] = useState<boolean>(false);
   const { activeDatabase } = useDatabase();
   const fetchFirstConversation = async () => {
     try {
@@ -46,8 +48,8 @@ export default function AdminPage() {
         return null;
       }
       const response = await fetch(
-        `/api/conversations?username=${username}&databaseId=${
-          activeDatabase?.databaseId || ""
+        `/api/conversations?username=${username}&name=${
+          activeDatabase?.name || ""
         }`
       );
       const data = await response.json();
@@ -87,6 +89,24 @@ export default function AdminPage() {
       }
     });
   }, [activeDatabase]);
+
+  useEffect(() => {
+    fetch("/api/admin/databases")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setDatabases(data);
+          toast.success("Databases loaded successfully!");
+        } else {
+          throw new Error("Invalid database data");
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching databases:", err);
+        toast.error("Failed to load databases.");
+        setDatabases([]);
+      });
+  }, [updateTrigger]);
 
   // admin adding annotation on conversation level handler
   const handleAddAnnotation = () => {
@@ -313,8 +333,31 @@ export default function AdminPage() {
       setDatabaseId("");
       setContainerId("");
       setDatabaseName("");
+
+      setUpdatetrigger(!updateTrigger);
     } catch (error) {
       console.error("Error adding database:", error);
+      toast.error("Internal Server Error");
+    }
+  };
+
+  const handleDeleteDatabase = async (databaseId: string) => {
+    try {
+      const response = await fetch("/api/admin/databases", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _id: databaseId, name: databaseName }),
+      });
+      const result = await response.json();
+      console.log("API Response:", result);
+      if (!response.ok) {
+        toast.error(`Error: ${result.error}`);
+        return;
+      }
+      toast.success("Database deleted successfully");
+      setUpdatetrigger(!updateTrigger);
+    } catch (error) {
+      console.error("Error deleting database:", error);
       toast.error("Internal Server Error");
     }
   };
@@ -394,6 +437,36 @@ export default function AdminPage() {
         >
           Add Database
         </button>
+      </div>
+      <div>
+        <h2 className="text-xl font-bold mt-6 mb-4">Databases</h2>
+        <table className="w-full border">
+          <thead className="bg-secondary text-secondary-foreground">
+            <tr>
+              <th className="border p-2">Name</th>
+              <th className="border p-2">Database ID</th>
+              <th className="border p-2">Container ID</th>
+              <th className="border p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {databases.map((database) => (
+              <tr key={database._id} className="even:bg-muted">
+                <td className="border p-2">{database.name}</td>
+                <td className="border p-2">{database.databaseId}</td>
+                <td className="border p-2">{database.containerId}</td>
+                <td className="border p-2">
+                  <button
+                    className="px-3 py-1 bg-red-500 text-white rounded-md shadow hover:bg-red-400 focus:ring-2 focus:ring-red-300 transition ease-in-out"
+                    onClick={() => handleDeleteDatabase(database._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       <h2 className="text-lg font-semibold mb-4">Conversation Annotation</h2>
       <table className="w-full mt-4 border">

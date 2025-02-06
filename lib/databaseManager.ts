@@ -18,7 +18,7 @@ const defaultDatabase = {
 
 export const getActiveDatabase = () => {
     return activeDatabase || defaultDatabase;
-  };
+};
 
 export const switchDatabase = (newDatabase:
     { uri: string; databaseId: string; containerId: string, name: string }) => {

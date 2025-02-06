@@ -19,9 +19,12 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const searchQuery = url.searchParams.get("query") || "";
     const username = url.searchParams.get("username");
-    const databaseId = url.searchParams.get("databaseId");
+    const name = url.searchParams.get("name");
 
-    if (!username || !databaseId) {
+    console.log("[DEBUG] Incoming request: URL", url.href);
+    console.log("[DEBUG] Database Name", name);
+
+    if (!username || !name) {
       return NextResponse.json(
         { error: "Missing username or databaseId parameter" },
         { status: 400 }
@@ -35,9 +38,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Fetch database _id for the given databaseId
+    // Fetch database name for the given database name
     const databaseCollection = await getDatabaseCollection();
-    const database = await databaseCollection.findOne({ databaseId });
+    const database = await databaseCollection.findOne({ name });
     if (!database) {
       return NextResponse.json({ error: "Database not found" }, { status: 404 });
     }

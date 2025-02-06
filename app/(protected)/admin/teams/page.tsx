@@ -128,6 +128,36 @@ export default function TeamsPage() {
     }
   };
 
+  const handleDeleteUser = async (username: string) => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        toast.error(error || "Failed to delete user");
+        return;
+      }
+
+      fetch("/api/users")
+        .then((res) => res.json())
+        .then((data) => {
+          setUsers(data);
+          toast.success(`User "${username}" deleted successfully!`);
+        })
+        .catch((err) => {
+          console.error("Error fetching users:", err);
+          toast.error("Failed to reload users.");
+        });
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      toast.error("Internal Server Error");
+    }
+  };
+
   const fetchConversationsByDatabase = async (databaseId: string) => {
     try {
       toast.info("Loading conversations...");
@@ -212,6 +242,9 @@ export default function TeamsPage() {
         `Conversations assigned successfully with Assignment Title: ${assignmentTitle}`
       );
       setShowManualAssignModal(false);
+      setAssignmentName("");
+      setConversationSearch("");
+      setSelectedDatabase("");
       setSelectedAnnotators([]);
       setSelectedConversationIds([]);
     } catch (err) {
@@ -281,6 +314,10 @@ export default function TeamsPage() {
         `Tasks divided successfully with assignment Title: ${assignmentTitle}`
       );
       setShowDivisionModal(false);
+      setAssignmentName("");
+      setSelectedDatabase("");
+      setSelectedAnnotators([]);
+      setIntersectionCount(0);
     } catch (err) {
       console.error("Error dividing tasks:", err);
       toast.error("Internal Server Error");
@@ -307,11 +344,22 @@ export default function TeamsPage() {
           <tr>
             <th
               className="border border-gray-400 px-4 py-2"
-              style={{ width: "30%" }}
+              style={{ width: "20%" }}
             >
               Username
             </th>
-            <th className="border border-gray-400 px-4 py-2">Role</th>
+            <th
+              className="border border-gray-400 px-4 py-2"
+              style={{ width: "30%" }}
+            >
+              Role
+            </th>
+            <th
+              className="border border-gray-400 px-4 py-2"
+              style={{ width: "20%" }}
+            >
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -321,6 +369,14 @@ export default function TeamsPage() {
                 {user.username}
               </td>
               <td className="border border-gray-400 px-4 py-2">{user.role}</td>
+              <td className="border border-gray-400 px-4 py-2">
+                <button
+                  onClick={() => handleDeleteUser(user.username)}
+                  className="px-4 py-2 bg-red-500 text-white rounded"
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -655,6 +711,10 @@ export default function TeamsPage() {
                 onClick={() => {
                   setShowManualAssignModal(false);
                   setSelectedConversationIds([]);
+                  setAssignmentName("");
+                  setSelectedDatabase("");
+                  setSelectedAnnotators([]);
+                  setIntersectionCount(0);
                 }}
                 className="px-4 py-2 bg-gray-500 text-white rounded"
               >

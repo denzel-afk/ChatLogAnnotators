@@ -21,13 +21,21 @@ export async function POST(req: Request) {
 
     const usersCollection = await getUserCollection();
     const assignmentTitle = assignmentName;
+    const objectConversations = conversations.map(id => {
+      try {
+        return new ObjectId(id); // Convert each conversation ID to an ObjectId
+      } catch (error) {
+        console.error(`Invalid conversation ObjectId: ${id}`, error);
+        return null;
+      }
+    }).filter(id => id !== null); // Filter out any null values resulting from invalid IDs
 
     for (const userId of userIds) {
       let objectId;
       try {
         objectId = new ObjectId(userId);
-      } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-        console.error(`Invalid ObjectId: ${userId}`);
+      } catch (error) {
+        console.error(`Invalid ObjectId for user: ${userId}`, error);
         continue;
       }
 
@@ -44,9 +52,9 @@ export async function POST(req: Request) {
           $push: {
             [`assignedConversations.${databaseId}.assignments`]: {
               assignmentTitle,
-              conversations,
+              conversations: objectConversations,
             },
-          } as any, /* eslint-disable-line @typescript-eslint/no-explicit-any */
+          } as any , // eslint-disable-line @typescript-eslint/no-explicit-any
         },
         { upsert: true }
       );

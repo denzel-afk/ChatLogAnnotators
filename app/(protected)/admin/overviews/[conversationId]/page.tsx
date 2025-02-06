@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Conversation, Annotation } from "@/types/conversations";
+import { Conversation, Annotation, Message } from "@/types/conversations";
 
 export default function SummaryPage({
   params,
@@ -9,15 +9,20 @@ export default function SummaryPage({
   params: Promise<{ conversationId: string }>;
 }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(
-    null
-  );
-  const [activeCommentIndex, setActiveCommentIndex] = useState<number | null>(
-    null
+  const [activeMessageIndices, setActiveMessageIndices] = useState<{
+    [index: number]: boolean;
+  }>({});
+  const [activeCommentIndices, setActiveCommentIndices] = useState<{
+    [index: number]: boolean;
+  }>({});
+  const [hasComments, setHasComments] = useState<{ [key: number]: boolean }>(
+    {}
   );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const storedToggleAll = localStorage.getItem("toggleAll");
+    const toggleAll = storedToggleAll ? JSON.parse(storedToggleAll) : false;
     params
       .then(({ conversationId }) => {
         fetch(`/api/conversations/${conversationId}`)
@@ -25,7 +30,22 @@ export default function SummaryPage({
             if (!res.ok) throw new Error("Failed to fetch conversation");
             return res.json();
           })
-          .then((data) => setConversation(data))
+          .then((data) => {
+            setConversation(data);
+            const commentPresence: { [key: number]: boolean } = {};
+            data.messages.forEach((message: Message, index: number) => {
+              if (message.comments && message.comments.length > 0) {
+                commentPresence[index] = message.comments.length > 0;
+              }
+            });
+            setHasComments(commentPresence);
+            const indices: { [key: number]: boolean } = {};
+            data.messages.forEach((_: any, index: number) => {
+              indices[index] = toggleAll;
+            });
+            setActiveMessageIndices(indices);
+            setActiveCommentIndices(indices);
+          })
           .catch((error) => {
             console.error("Error fetching conversation:", error);
             setError("Failed to load conversation");
@@ -232,8 +252,44 @@ export default function SummaryPage({
       }
     }
   };
+  const toggleMessageIndex = (index: number) => {
+    setActiveMessageIndices((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const toggleCommentIndex = (index: number) => {
+    setActiveCommentIndices((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const handleToggleAll = () => {
+    const newToggleAll = !JSON.parse(
+      localStorage.getItem("toggleAll") || "false"
+    );
+    localStorage.setItem("toggleAll", JSON.stringify(newToggleAll));
+    const newIndices = Object.keys(activeMessageIndices).reduce<{
+      [key: string]: boolean;
+    }>((acc, key) => {
+      acc[key] = newToggleAll;
+      return acc;
+    }, {});
+    setActiveMessageIndices(newIndices);
+    setActiveCommentIndices(newIndices);
+  };
   return (
     <div className="p-4 bg-background text-foreground h-screen flex flex-col">
+      <button
+        onClick={handleToggleAll}
+        className="p-2 bg-blue-500 text-white rounded"
+      >
+        {JSON.parse(localStorage.getItem("toggleAll") || "false")
+          ? "Close All Annotations and Comments"
+          : "Open All Annotations and Comments"}
+      </button>
       <h1 className="text-2xl font-bold mb-4">
         Summary of Annotations Conversation Level
       </h1>
@@ -266,26 +322,24 @@ export default function SummaryPage({
           <button
             className="bg-yellow-200 rounded-md p-2 text-black mt-2 hover:bg-yellow-300 ease-in-out transition duration-300 mr-2"
             onClick={() => {
-              setActiveMessageIndex(
-                activeMessageIndex === index ? null : index
-              );
+              toggleMessageIndex(index);
             }}
           >
-            {activeMessageIndex === index
+            {activeMessageIndices[index]
               ? "Hide Annotations"
               : "Show Annotations"}
           </button>
           <button
-            className="bg-yellow-200 rounded-md p-2 text-black mt-2 hover:bg-yellow-300 ease-in-out transition duration-300"
+            className={`bg-yellow-200 rounded-md p-2 text-black mt-2 hover:bg-yellow-300 ease-in-out transition duration-300 ${
+              hasComments[index] ? "glow-button text-red-600" : ""
+            }`}
             onClick={() => {
-              setActiveCommentIndex(
-                activeCommentIndex === index ? null : index
-              );
+              toggleCommentIndex(index);
             }}
           >
-            {activeCommentIndex === index ? "Hide Comments" : "Show Comments"}
+            {activeCommentIndices[index] ? "Hide Comments" : "Show Comments"}
           </button>
-          {activeMessageIndex === index && (
+          {activeMessageIndices[index] && (
             <div className="mt-2">
               {message.annotations?.map((annotation, index) => (
                 <div key={index} className="mt-2">
@@ -295,7 +349,7 @@ export default function SummaryPage({
               ))}
             </div>
           )}
-          {activeCommentIndex === index && (
+          {activeCommentIndices[index] && (
             <div className="mt-4 space-y-4">
               {message.comments?.map((comment, idx) => (
                 <div

@@ -77,6 +77,22 @@ body {
   }
 }
 
+@layer components {
+  .glow-button {
+    @apply bg-yellow-300 text-black p-2 rounded-md transition-all duration-300 ease-in-out;
+    box-shadow: 0 0 8px rgba(255, 255, 0, 0.6);
+  }
+  .glow-button:hover {
+    box-shadow: 0 0 20px rgba(255, 255, 0, 1);
+  }
+  .glow-button:focus {
+    @apply outline-none;
+  }
+  .glow-button-text {
+    text-shadow: 0 0 4px #ff0;
+  }
+}
+
 @layer utilities {
   .resize-x {
     resize: horizontal;

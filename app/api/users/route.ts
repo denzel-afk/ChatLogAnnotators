@@ -50,3 +50,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request){
+  try {
+    const { username } = await req.json();
+    if (!username) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const usersCollection = await getUserCollection();
+    await usersCollection.findOneAndDelete({ username });
+
+    return NextResponse.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

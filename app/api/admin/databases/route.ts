@@ -2,6 +2,8 @@
 
 import { NextResponse } from "next/server";
 import { getDatabaseCollection } from "@/lib/cosmosdb";
+import { getUserCollection } from "@/lib/cosmosdb";
+import { ObjectId } from "mongodb";
 
 export async function POST(req: Request) {
   try {
@@ -40,6 +42,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Database added successfully" });
   } catch (error) {
     console.error("Error adding database:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request){
+  try{
+    const { _id } = await req.json();
+    if (!_id) {
+      return NextResponse.json(
+        { error: "Missing required fields: _id and name of database" },
+        { status: 400 }
+      );
+    }
+
+    const objectId = new ObjectId(_id);
+
+    const databaseCollection = await getDatabaseCollection();
+    const userCollection = await getUserCollection();
+    const existingDatabase = await databaseCollection.findOne({
+      _id: objectId
+    });
+
+    if (!existingDatabase) {
+      return NextResponse.json(
+        { error: "Database does not exist" },
+        { status: 404 }
+      );
+    }
+
+    await databaseCollection.deleteOne({
+      _id: objectId
+    });
+
+    await userCollection.updateMany(
+      {
+        [`assignedConversations.${_id}`]: { $exists: true }
+      },
+      {
+        $unset: { [`assignedConversations.${_id}`]: "" }
+      }
+    );
+
+    return NextResponse.json({ message: "Database deleted successfully" });
+  } catch(error){
+    console.error("Error deleting database:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

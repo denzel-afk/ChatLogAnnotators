@@ -37,7 +37,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           ? `&query=${encodeURIComponent(searchQuery)}`
           : "";
         const response = await fetch(
-          `/api/conversations?username=${username}&databaseId=${activeDatabase.databaseId}${queryParam}`
+          `/api/conversations?username=${username}&name=${activeDatabase.name}${queryParam}`
         );
         const data = await response.json();
 
