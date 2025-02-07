@@ -8,6 +8,7 @@ interface CueCardProps {
   title: string;
   onClick: () => void;
   isActive?: boolean;
+  isAnnotatedByUser?: boolean;
 }
 
 const CueCard: React.FC<CueCardProps> = ({
@@ -17,24 +18,18 @@ const CueCard: React.FC<CueCardProps> = ({
   title,
   onClick,
   isActive = false,
+  isAnnotatedByUser = false,
 }) => {
   return (
     <motion.div
-      whileHover={{
-        scale: 1.05,
-        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
-      }}
+      whileHover={{ scale: 1.05, boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)" }}
       whileTap={{ scale: 0.95 }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 15,
-      }}
+      transition={{ type: "spring", stiffness: 200, damping: 15 }}
       className={`mb-4 p-4 rounded-md cursor-pointer shadow-sm border ${
         isActive
           ? "bg-primary text-primary-foreground border-primary shadow-md"
           : "bg-secondary text-secondary-foreground border-sidebar-border"
-      }`}
+      } ${isAnnotatedByUser ? "ring ring-offset-2 ring-primary" : ""}`} // Apply ring if annotated by user
       onClick={onClick}
     >
       <p className="font-bold text-lg break-words text-center">{title}</p>
@@ -47,6 +42,11 @@ const CueCard: React.FC<CueCardProps> = ({
         <strong>Last Interaction:</strong>{" "}
         {new Date(lastInteraction).toLocaleString()}
       </p>
+      {isAnnotatedByUser && (
+        <p className="w-fit rounded-[20px] px-1 py-1 justify-items-center text-right text-sm text-primary-50 bg-green-600 text-white">
+          Annotated ✓
+        </p>
+      )}{" "}
     </motion.div>
   );
 };
