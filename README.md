@@ -788,4 +788,4 @@ jobs:
 
 and do not forget to fill in the secrets on the github settings before you push it on your github again.
 
-That will be it for the deployment settings.
+That will be it for the deployment settings. If you have any enquiries, please contact `denzeledanbanget@gmail.com` as the email of the first developer.
