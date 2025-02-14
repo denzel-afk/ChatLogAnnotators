@@ -18,7 +18,7 @@ const AnnotatedDistributionChart: React.FC<AnnotatedDistributionChartProps> = ({
   return (
     <div className="flex flex-col items-center w-full py-4">
       <h1 className="text-lg font-semibold mb-2">
-        Annotators' Conversations Performance Based on Individual Performance
+        Annotators Conversations Performance Based on Individual Performance
       </h1>
       <ResponsiveContainer width={1500} height={800}>
         <BarChart

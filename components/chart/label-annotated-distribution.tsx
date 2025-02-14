@@ -18,7 +18,7 @@ const AnnotatedLabelDistributionChart: React.FC<
   return (
     <div className="flex flex-col items-center w-full py-4">
       <h1 className="text-lg font-semibold mb-2">
-        Annotators' Conversation Performance Based on Label/Attributes
+        Annotators Conversation Performance Based on Label/Attributes
       </h1>
       <ResponsiveContainer width={1000} height={800}>
         <BarChart
