@@ -8,8 +8,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { DatabaseProvider } from "@/components/database-context";
-import DatabaseSwitcher from "@/components/database-switcher";
+import { DatabaseProvider } from "@/components/context/database-context";
+import DatabaseSwitcher from "@/components/context/database-switcher";
 
 const RootLayout = ({ children }: { children: ReactNode }) => {
   return (

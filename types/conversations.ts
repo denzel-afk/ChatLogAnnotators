@@ -56,6 +56,7 @@ export interface User {
       }[];
     };
   };
+  isDeleted: boolean;
 }
 
 

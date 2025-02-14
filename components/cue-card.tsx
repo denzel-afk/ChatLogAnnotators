@@ -9,6 +9,7 @@ interface CueCardProps {
   onClick: () => void;
   isActive?: boolean;
   isAnnotatedByUser?: boolean;
+  isInProgress?: boolean;
 }
 
 const CueCard: React.FC<CueCardProps> = ({
@@ -19,6 +20,7 @@ const CueCard: React.FC<CueCardProps> = ({
   onClick,
   isActive = false,
   isAnnotatedByUser = false,
+  isInProgress = false,
 }) => {
   return (
     <motion.div
@@ -42,8 +44,13 @@ const CueCard: React.FC<CueCardProps> = ({
         <strong>Last Interaction:</strong>{" "}
         {new Date(lastInteraction).toLocaleString()}
       </p>
+      {isInProgress && (
+        <p className="w-fit rounded-[20px] px-2 py-2 justify-items-center text-right text-sm text-primary-50 bg-yellow-600 text-white">
+          In Progress
+        </p>
+      )}{" "}
       {isAnnotatedByUser && (
-        <p className="w-fit rounded-[20px] px-1 py-1 justify-items-center text-right text-sm text-primary-50 bg-green-600 text-white">
+        <p className="w-fit rounded-[20px] px-2 py-2 justify-items-center text-right text-sm text-primary-50 bg-green-600 text-white">
           Annotated ✓
         </p>
       )}{" "}

@@ -31,7 +31,7 @@ export default function LoginPage() {
         } else {
           setError("An error occurred while logging in.");
         }
-        setLoading(false); // Reset loading state
+        setLoading(false);
         return;
       }
 
@@ -42,16 +42,18 @@ export default function LoginPage() {
 
       if (user.role === "admin") {
         router.push("/admin/home");
-      } else if (user.role === "annotator") {
+      } else if (user.role === "annotator" && user.isDeleted === false) {
         router.push("/annotator/home");
+      } else if (user.role === "annotator" && user.isDeleted === true) {
+        setError("User is deleted. Please contact an admin.");
       } else {
-        setError("Invalid role.");
+        setError("Invalid user role.");
       }
     } catch (err) {
       console.error("Login failed:", err);
       setError("An error occurred. Please try again later.");
     } finally {
-      setLoading(false); // Reset loading state
+      setLoading(false);
     }
   };
 

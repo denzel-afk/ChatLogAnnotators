@@ -1,4 +1,4 @@
-import { useAssignment } from "@/components/assignment-context";
+import { useAssignment } from "@/components/context/assignment-context";
 
 const AssignmentSwitcher = () => {
   const { activeAssignment, assignments, switchAssignment } = useAssignment();

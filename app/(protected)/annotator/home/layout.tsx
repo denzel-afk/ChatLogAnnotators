@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ConversationSidebar from "@/components/conversation-sidebar";
 import { Conversation } from "@/types/conversations";
-import { useAssignment } from "@/components/assignment-context";
+import { useAssignment } from "@/components/context/assignment-context";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars

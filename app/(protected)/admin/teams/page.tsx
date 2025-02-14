@@ -158,6 +158,36 @@ export default function TeamsPage() {
     }
   };
 
+  const handleReactivateUser = async (username: string) => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        toast.error(error || "Failed to reactivate user");
+        return;
+      }
+
+      fetch("/api/users")
+        .then((res) => res.json())
+        .then((data) => {
+          setUsers(data);
+          toast.success(`User "${username}" reactivated successfully!`);
+        })
+        .catch((err) => {
+          console.error("Error fetching users:", err);
+          toast.error("Failed to reload users.");
+        });
+    } catch (err) {
+      console.error("Error reactivating user:", err);
+      toast.error("Internal Server Error");
+    }
+  };
+
   const fetchConversationsByDatabase = async (databaseId: string) => {
     try {
       toast.info("Loading conversations...");
@@ -363,22 +393,26 @@ export default function TeamsPage() {
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
-            <tr key={user._id}>
-              <td className="border border-gray-400 px-4 py-2">
-                {user.username}
-              </td>
-              <td className="border border-gray-400 px-4 py-2">{user.role}</td>
-              <td className="border border-gray-400 px-4 py-2">
-                <button
-                  onClick={() => handleDeleteUser(user.username)}
-                  className="px-4 py-2 bg-red-500 text-white rounded"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
+          {users
+            .filter((user) => user.isDeleted === false)
+            .map((user) => (
+              <tr key={user._id}>
+                <td className="border border-gray-400 px-4 py-2">
+                  {user.username}
+                </td>
+                <td className="border border-gray-400 px-4 py-2">
+                  {user.role}
+                </td>
+                <td className="border border-gray-400 px-4 py-2">
+                  <button
+                    onClick={() => handleDeleteUser(user.username)}
+                    className="px-4 py-2 bg-red-500 text-white rounded"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
         </tbody>
       </table>
       <div className="flex flex-row">
@@ -395,6 +429,56 @@ export default function TeamsPage() {
         >
           Add User
         </button>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Deleted Users</h2>
+        <table className="table-auto w-full border-collapse border border-gray-400 mb-4">
+          <thead>
+            <tr>
+              <th
+                className="border border-gray-400 px-4 py-2"
+                style={{ width: "20%" }}
+              >
+                Username
+              </th>
+              <th
+                className="border border-gray-400 px-4 py-2"
+                style={{ width: "30%" }}
+              >
+                Role
+              </th>
+              <th
+                className="border border-gray-400 px-4 py-2"
+                style={{ width: "20%" }}
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {users
+              .filter((user) => user.isDeleted === true)
+              .map((user) => (
+                <tr key={user._id}>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {user.username}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {user.role}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    <button
+                      onClick={() => handleReactivateUser(user.username)}
+                      className="px-4 py-2 bg-green-500 text-white rounded"
+                    >
+                      Reactivate
+                    </button>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Add Users Button */}
@@ -538,6 +622,7 @@ export default function TeamsPage() {
             </label>
             <div className="mb-4">
               {users
+                .filter((user) => user.isDeleted === false)
                 .filter((user) => user.role === "annotator")
                 .map((user) => (
                   <label
@@ -638,6 +723,7 @@ export default function TeamsPage() {
             </label>
             <div className="mb-4">
               {users
+                .filter((user) => user.isDeleted === false)
                 .filter((user) => user.role === "annotator")
                 .map((user) => (
                   <label

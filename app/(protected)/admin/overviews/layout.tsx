@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ConversationSidebar from "@/components/conversation-sidebar";
 import { Conversation } from "@/types/conversations";
-import { useDatabase } from "@/components/database-context";
+import { useDatabase } from "@/components/context/database-context";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */

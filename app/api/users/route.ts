@@ -11,6 +11,7 @@ export async function GET() {
       username: user.username,
       role: user.role,
       assignedConversations: user.assignedConversations || {},
+      isDeleted: user.isDeleted || false,
     }));
 
     return NextResponse.json(formattedUsers);
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
       username,
       role,
       assignedConversations,
+      isDeleted: false,
     };
 
     await usersCollection.insertOne(newUser);
@@ -59,11 +61,38 @@ export async function DELETE(req: Request){
     }
 
     const usersCollection = await getUserCollection();
-    await usersCollection.findOneAndDelete({ username });
+    const user = await usersCollection.findOne({ username });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    await usersCollection.updateOne({ username }, { $set: { isDeleted: true } });
 
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request){
+  try {
+    const { username } = await req.json();
+    if (!username) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const usersCollection = await getUserCollection();
+    const user = await usersCollection.findOne({ username });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    await usersCollection.updateOne({ username }, { $set: { isDeleted: false } });
+
+    return NextResponse.json({ message: "User reactivated successfully" });
+  } catch (error) {
+    console.error("Error reactivating user:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

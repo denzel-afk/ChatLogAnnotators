@@ -32,18 +32,33 @@ const ConversationSidebar: React.FC<ConvSidebarProps> = ({
       </h2>
       {conversations.length > 0 ? (
         conversations.map((conv) => {
-          const isAnnotatedByUser = !!(
-            username &&
-            conv.annotations &&
-            (conv.annotations.some((annotation) =>
-              annotation.answers.some((answer) => answer.name === username)
+          const isAnnotatedByUser =
+            conv.messages.every((message) =>
+              message.annotations
+                ? message.annotations.every((annotation) =>
+                    annotation.answers?.some(
+                      (answer) => answer.name === username
+                    )
+                  )
+                : true
+            ) &&
+            (conv.annotations
+              ? conv.annotations.every((annotation) =>
+                  annotation.answers?.some((answer) => answer.name === username)
+                )
+              : true);
+
+          const isInProgress =
+            (conv.annotations?.some((annotation) =>
+              annotation.answers?.some((answer) => answer.name === username)
             ) ||
               conv.messages.some((message) =>
                 message.annotations?.some((annotation) =>
-                annotation.answers.some((answer) => answer.name === username)
-              ))
-            )
-          );
+                  annotation.answers?.some((answer) => answer.name === username)
+                )
+              )) &&
+            !isAnnotatedByUser;
+
           return (
             <CueCard
               key={conv._id}
@@ -54,6 +69,7 @@ const ConversationSidebar: React.FC<ConvSidebarProps> = ({
               onClick={() => onConversationSelect(conv._id)}
               isActive={conv._id === selectedConversation}
               isAnnotatedByUser={isAnnotatedByUser}
+              isInProgress={isInProgress}
             />
           );
         })

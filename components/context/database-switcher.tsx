@@ -1,5 +1,5 @@
 // components/DatabaseSwitcher.tsx
-import { useDatabase } from "@/components/database-context";
+import { useDatabase } from "@/components/context/database-context";
 
 const DatabaseSwitcher = () => {
   const { databases, activeDatabase, switchDatabase } = useDatabase();

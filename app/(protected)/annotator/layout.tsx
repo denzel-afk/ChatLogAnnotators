@@ -7,8 +7,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { AssignmentProvider } from "@/components/assignment-context";
-import AssignmentSwitcher from "@/components/assignment-switcher";
+import { AssignmentProvider } from "@/components/context/assignment-context";
+import AssignmentSwitcher from "@/components/context/assignment-switcher";
 
 import { ReactNode } from "react";
 
